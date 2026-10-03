@@ -1,0 +1,4 @@
+{
+  "/workflows/api": { "target": "http://localhost:5290", "secure": false },
+  "/workflows/hub": { "target": "http://localhost:5290", "secure": false, "ws": true }
+}

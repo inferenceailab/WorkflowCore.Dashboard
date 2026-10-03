@@ -1,0 +1,108 @@
+<a class="back" routerLink="/definitions"><mat-icon>arrow_back</mat-icon> Definitions</a>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (error()) {
+  <div class="error-banner"><mat-icon>error</mat-icon><span>{{ error() }}</span></div>
+}
+
+@if (def(); as d) {
+  <div class="heading">
+    <div>
+      <h1>{{ d.id }} <span class="ver">v{{ d.version }}</span></h1>
+      @if (d.description) {
+        <p class="muted">{{ d.description }}</p>
+      }
+    </div>
+    <div class="heading-actions">
+      <a mat-stroked-button routerLink="/instances" [queryParams]="{ definitionId: d.id }">
+        <mat-icon>format_list_bulleted</mat-icon> Instances
+      </a>
+      @if (allowActions()) {
+        <button mat-flat-button (click)="start()"><mat-icon>play_arrow</mat-icon> Start</button>
+      }
+    </div>
+  </div>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Steps</h2>
+        <span class="muted count">{{ d.steps.length }}</span>
+      </div>
+      <div class="table-scroll">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>Step</th>
+              <th>Type</th>
+              <th>Next</th>
+              <th>On error</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of d.steps; track s.id) {
+              <tr>
+                <td class="num muted">{{ s.id }}</td>
+                <td>
+                  <div class="step-name">
+                    @if (isContainer(s)) {
+                      <mat-icon class="container-icon" title="Container step">account_tree</mat-icon>
+                    }
+                    {{ s.name }}
+                  </div>
+                  @if (s.children.length) {
+                    <div class="muted small">Contains: {{ childNames(s) }}</div>
+                  }
+                </td>
+                <td class="mono muted" [title]="s.stepTypeFullName">{{ s.stepType }}</td>
+                <td>
+                  @for (o of s.outcomes; track $index) {
+                    <div class="outcome">
+                      <mat-icon>arrow_forward</mat-icon>
+                      {{ stepName(o.nextStep) }}
+                      @if (o.label) {
+                        <span class="label">{{ o.label }}</span>
+                      }
+                    </div>
+                  } @empty {
+                    <span class="muted">End</span>
+                  }
+                </td>
+                <td class="small">
+                  {{ s.errorBehavior ?? 'Default' }}
+                  @if (s.retryInterval) {
+                    <span class="muted"> · {{ s.retryInterval }}</span>
+                  }
+                  @if (s.compensationStepId !== null) {
+                    <div class="muted">Compensate: {{ stepName(s.compensationStepId) }}</div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <div class="panel-header"><h2>Details</h2></div>
+        <dl class="facts">
+          <dt>Data type</dt>
+          <dd class="mono">{{ d.dataType ?? '—' }}</dd>
+          <dt>Default error behavior</dt>
+          <dd>{{ d.defaultErrorBehavior }}</dd>
+          <dt>Default retry interval</dt>
+          <dd>{{ d.defaultErrorRetryInterval ?? '—' }}</dd>
+        </dl>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><h2>Default data</h2></div>
+        <wfc-json [value]="d.dataTemplate" emptyText="No data type, or it has no default constructor." />
+      </section>
+    </aside>
+  </div>
+}

@@ -1,0 +1,90 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    class="sidebar"
+    [mode]="compact() ? 'over' : 'side'"
+    [opened]="!compact() || navOpen()"
+    (closedStart)="navOpen.set(false)"
+  >
+    <a class="brand" routerLink="/" (click)="closeNavIfCompact()">
+      <span class="logo" aria-hidden="true">
+        <mat-icon>schema</mat-icon>
+      </span>
+      <span class="brand-text">
+        <strong>{{ config().title }}</strong>
+        <small>Dashboard</small>
+      </span>
+    </a>
+
+    <nav>
+      <div class="nav-section">Workflows</div>
+      @for (item of nav; track item.path) {
+        <a
+          class="nav-item"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.exact }"
+          (click)="closeNavIfCompact()"
+        >
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <footer class="sidebar-footer">
+      @if (config().persistenceProvider) {
+        <div class="meta">
+          <mat-icon>storage</mat-icon>
+          <span>{{ config().persistenceProvider }}</span>
+        </div>
+      }
+      @if (!config().allowActions) {
+        <div class="meta">
+          <mat-icon>lock</mat-icon>
+          <span>Read-only</span>
+        </div>
+      }
+    </footer>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <header class="topbar">
+      @if (compact()) {
+        <button mat-icon-button (click)="navOpen.set(true)" aria-label="Open navigation">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+
+      <span class="spacer"></span>
+
+      <span class="live" [attr.data-state]="live.state()" [matTooltip]="'Live updates: ' + liveLabel()">
+        <span class="pulse"></span>
+        <span class="live-label">{{ liveLabel() }}</span>
+      </span>
+
+      @if (config().allowActions) {
+        <button mat-stroked-button (click)="openPublish()">
+          <mat-icon>send</mat-icon>
+          <span class="hide-sm">Publish event</span>
+        </button>
+        <button mat-flat-button (click)="openStart()">
+          <mat-icon>play_arrow</mat-icon>
+          <span class="hide-sm">Start workflow</span>
+        </button>
+      }
+
+      <button
+        mat-icon-button
+        (click)="toggleTheme()"
+        [matTooltip]="theme() === 'dark' ? 'Light theme' : 'Dark theme'"
+        aria-label="Toggle theme"
+      >
+        <mat-icon>{{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+    </header>
+
+    <main class="page">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

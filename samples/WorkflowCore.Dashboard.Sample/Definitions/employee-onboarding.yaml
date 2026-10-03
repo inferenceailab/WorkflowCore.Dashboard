@@ -1,0 +1,35 @@
+Id: EmployeeOnboarding
+Version: 1
+Description: Loaded from YAML. Runs IT setup and access requests in parallel.
+DataType: WorkflowCore.Dashboard.Sample.Workflows.OnboardingData, WorkflowCore.Dashboard.Sample
+Steps:
+  - Id: CreateAccount
+    Name: Create account
+    StepType: WorkflowCore.Dashboard.Sample.Steps.LogStep, WorkflowCore.Dashboard.Sample
+    Inputs:
+      Message: '"Creating account for " + data.EmployeeName'
+    NextStepId: Setup
+  - Id: Setup
+    Name: Parallel setup
+    StepType: WorkflowCore.Primitives.Sequence, WorkflowCore
+    NextStepId: Welcome
+    Do:
+      - - Id: OrderLaptop
+          Name: Order laptop
+          StepType: WorkflowCore.Dashboard.Sample.Steps.WorkStep, WorkflowCore.Dashboard.Sample
+          NextStepId: WaitForLaptop
+        - Id: WaitForLaptop
+          Name: Wait for delivery
+          StepType: WorkflowCore.Primitives.Delay, WorkflowCore
+          Inputs:
+            Period: TimeSpan.FromSeconds(data.LaptopDelaySeconds)
+      - - Id: GrantAccess
+          Name: Grant system access
+          StepType: WorkflowCore.Dashboard.Sample.Steps.WorkStep, WorkflowCore.Dashboard.Sample
+          Inputs:
+            Milliseconds: "2000"
+  - Id: Welcome
+    Name: Send welcome email
+    StepType: WorkflowCore.Dashboard.Sample.Steps.LogStep, WorkflowCore.Dashboard.Sample
+    Inputs:
+      Message: '"Welcome aboard, " + data.EmployeeName'

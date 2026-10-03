@@ -1,0 +1,202 @@
+<a class="back" routerLink="/instances"><mat-icon>arrow_back</mat-icon> Instances</a>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (error()) {
+  <div class="error-banner"><mat-icon>error</mat-icon><span>{{ error() }}</span></div>
+}
+
+@if (summary(); as s) {
+  <div class="heading">
+    <div class="title">
+      <h1>
+        {{ s.definitionId }}
+        <a class="ver" [routerLink]="['/definitions', s.definitionId, s.version]">v{{ s.version }}</a>
+        <wfc-status [status]="s.status" />
+      </h1>
+      <div class="id-line">
+        <span class="mono">{{ s.id }}</span>
+        <button mat-icon-button class="copy" matTooltip="Copy ID" (click)="copyId()">
+          <mat-icon>content_copy</mat-icon>
+        </button>
+        @if (s.reference) {
+          <span class="ref">Ref <strong>{{ s.reference }}</strong></span>
+        }
+      </div>
+    </div>
+
+    @if (allowActions()) {
+      <div class="heading-actions">
+        @if (canSuspend()) {
+          <button mat-stroked-button (click)="suspend()" [disabled]="busy()"><mat-icon>pause</mat-icon> Suspend</button>
+        }
+        @if (canResume()) {
+          <button mat-flat-button (click)="resume()" [disabled]="busy()"><mat-icon>play_arrow</mat-icon> Resume</button>
+        }
+        @if (canTerminate()) {
+          <button mat-stroked-button class="danger" (click)="terminate()" [disabled]="busy()">
+            <mat-icon>stop_circle</mat-icon> Terminate
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <section class="facts-row panel">
+    <div class="fact">
+      <span class="muted">Created</span>
+      <strong [title]="s.createTime | date: 'medium'">{{ s.createTime | date: 'MMM d, HH:mm:ss' }}</strong>
+    </div>
+    <div class="fact">
+      <span class="muted">Completed</span>
+      <strong [title]="s.completeTime ? (s.completeTime | date: 'medium') : ''">
+        {{ s.completeTime ? (s.completeTime | date: 'MMM d, HH:mm:ss') : '—' }}
+      </strong>
+    </div>
+    <div class="fact">
+      <span class="muted">Duration</span>
+      <strong>{{ duration(s.createTime, s.completeTime) }}</strong>
+    </div>
+    <div class="fact">
+      <span class="muted">Next run</span>
+      <strong [title]="s.nextExecution ? (s.nextExecution | date: 'medium') : ''">
+        {{ s.status === 'Runnable' && s.nextExecution ? ago(s.nextExecution) : '—' }}
+      </strong>
+    </div>
+    <div class="fact">
+      <span class="muted">Steps</span>
+      <strong>
+        {{ pointers().length }}
+        @if (s.failedPointers) {
+          <span class="failed-count">· {{ s.failedPointers }} failed</span>
+        }
+      </strong>
+    </div>
+  </section>
+
+  <section class="panel">
+    <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false">
+      <mat-tab label="Execution">
+        <div class="table-scroll">
+          <table class="grid pointers">
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>Status</th>
+                <th class="timeline-col">Timeline</th>
+                <th>Started</th>
+                <th class="num">Duration</th>
+                <th class="num">Retries</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of pointers(); track p.id) {
+                <tr class="clickable" [class.open]="expanded() === p.id" (click)="toggle(p)">
+                  <td>
+                    <div class="step">{{ p.stepName }}</div>
+                    @if (p.stepType && p.stepType !== p.stepName) {
+                      <div class="muted mono small">{{ p.stepType }}</div>
+                    }
+                  </td>
+                  <td><wfc-status [status]="displayStatus(p)" /></td>
+                  <td class="timeline-col">
+                    @if (bar(p); as b) {
+                      <div class="track" [title]="p.stepName + ': ' + pointerDuration(p)">
+                        <span class="bar" [class]="'bar tone-' + b.tone" [style.left.%]="b.left" [style.width.%]="b.width"></span>
+                      </div>
+                    }
+                  </td>
+                  <td class="small" [title]="p.startTime ? (p.startTime | date: 'medium') : ''">
+                    {{ p.startTime ? (p.startTime | date: 'HH:mm:ss.SSS') : '—' }}
+                  </td>
+                  <td class="num">{{ pointerDuration(p) }}</td>
+                  <td class="num">{{ p.retryCount || '' }}</td>
+                  <td class="row-actions">
+                    @if (p.status === 'WaitingForEvent' && allowActions()) {
+                      <button mat-stroked-button class="small-btn" (click)="publishFor(p); $event.stopPropagation()">
+                        <mat-icon>send</mat-icon> Publish
+                      </button>
+                    }
+                    <mat-icon class="chevron">{{ expanded() === p.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+                  </td>
+                </tr>
+                @if (expanded() === p.id) {
+                  <tr class="expansion">
+                    <td colspan="7">
+                      <div class="pointer-detail">
+                        <dl class="facts">
+                          <dt>Pointer ID</dt>
+                          <dd class="mono">{{ p.id }}</dd>
+                          <dt>Step ID</dt>
+                          <dd>{{ p.stepId }}</dd>
+                          @if (p.eventName) {
+                            <dt>Event</dt>
+                            <dd>
+                              <span class="mono">{{ p.eventName }}</span> / <span class="mono">{{ p.eventKey }}</span>
+                              {{ p.eventPublished ? '(received)' : '(waiting)' }}
+                            </dd>
+                          }
+                          @if (p.sleepUntil) {
+                            <dt>Sleep until</dt>
+                            <dd>{{ p.sleepUntil | date: 'medium' }}</dd>
+                          }
+                          @if (p.endTime) {
+                            <dt>Ended</dt>
+                            <dd>{{ p.endTime | date: 'medium' }}</dd>
+                          }
+                          @if (p.predecessorId) {
+                            <dt>Predecessor</dt>
+                            <dd class="mono">{{ p.predecessorId }}</dd>
+                          }
+                          @if (p.scope.length) {
+                            <dt>Scope</dt>
+                            <dd class="mono">{{ p.scope.join(' › ') }}</dd>
+                          }
+                        </dl>
+                        <div class="payloads">
+                          @if (p.outcome !== null) {
+                            <div><h3>Outcome</h3><wfc-json [value]="p.outcome" /></div>
+                          }
+                          @if (p.eventData !== null) {
+                            <div><h3>Event data</h3><wfc-json [value]="p.eventData" /></div>
+                          }
+                          @if (p.persistenceData !== null) {
+                            <div><h3>Persistence data</h3><wfc-json [value]="p.persistenceData" /></div>
+                          }
+                          @if (p.contextItem !== null) {
+                            <div><h3>Context item</h3><wfc-json [value]="p.contextItem" /></div>
+                          }
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              } @empty {
+                <tr><td colspan="7" class="empty">No execution pointers.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Data">
+        <wfc-json [value]="detail()?.data" emptyText="This workflow has no data." />
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          Activity
+          @if (errorCount()) {
+            <span class="tab-badge">{{ errorCount() }}</span>
+          }
+        </ng-template>
+        <p class="muted activity-note">
+          Events recorded since the app started. Older history is not kept by Workflow Core.
+        </p>
+        <wfc-activity-list [entries]="activity()" [showInstance]="false" emptyText="No events recorded for this instance." />
+      </mat-tab>
+    </mat-tab-group>
+  </section>
+}

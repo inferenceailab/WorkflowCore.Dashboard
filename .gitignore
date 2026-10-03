@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+node_modules/
+.angular/
+src/WorkflowCore.Dashboard/wwwroot/
+samples/**/*.db
+samples/**/*.db-shm
+samples/**/*.db-wal

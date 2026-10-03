@@ -1,0 +1,94 @@
+.heading .sep { margin: 0 6px; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tile {
+  --c: var(--wfc-pending);
+  padding: 14px 16px;
+  &.tone-runnable { --c: var(--wfc-runnable); }
+  &.tone-complete { --c: var(--wfc-complete); }
+  &.tone-failed { --c: var(--wfc-failed); }
+  &.tone-suspended { --c: var(--wfc-suspended); }
+  &.tone-terminated { --c: var(--wfc-terminated); }
+}
+
+.tile-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--wfc-muted);
+  font: var(--mat-sys-label-large);
+  // The icon carries the status color; the text stays in text tokens.
+  mat-icon { color: var(--c); font-size: 18px; width: 18px; height: 18px; }
+}
+
+.tile-value {
+  margin-top: 6px;
+  font: var(--mat-sys-headline-medium);
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.feed wfc-activity-list { max-height: 640px; overflow-y: auto; }
+
+.side { display: flex; flex-direction: column; gap: 16px; }
+
+.running-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--wfc-border);
+  text-decoration: none;
+  color: inherit;
+  &:last-child { border-bottom: 0; }
+  &:hover { background: color-mix(in srgb, var(--mat-sys-primary) 6%, transparent); }
+}
+
+.running-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  strong { font: var(--mat-sys-label-large); }
+  span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+.running-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--mat-sys-label-medium);
+  color: var(--wfc-muted);
+  text-align: right;
+  .failed { color: var(--wfc-failed); font-size: 16px; width: 16px; height: 16px; }
+}
+
+.definitions {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px;
+  .count { font: var(--mat-sys-headline-medium); font-weight: 600; }
+}
+
+@media (max-width: 1100px) {
+  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

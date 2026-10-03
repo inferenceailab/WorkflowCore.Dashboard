@@ -1,0 +1,50 @@
+.lookup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  mat-form-field { width: 300px; }
+}
+
+.lookup-error { margin: -8px 0 16px; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--wfc-border);
+  mat-form-field { width: 180px; }
+}
+
+.spacer { flex: 1; }
+
+.new-events mat-icon { color: var(--wfc-suspended); }
+
+.list-error { margin: 12px 16px; }
+
+.id { font-size: 12.5px; }
+.small { font: var(--mat-sys-body-small); }
+
+.current {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  .failed { color: var(--wfc-failed); font-size: 16px; width: 16px; height: 16px; }
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--wfc-border);
+  font: var(--mat-sys-label-medium);
+  .page-size { width: 110px; }
+}
+
+@media (max-width: 700px) {
+  .lookup { width: 100%; mat-form-field { flex: 1; width: auto; } }
+  .filters mat-form-field { width: calc(50% - 5px); }
+}

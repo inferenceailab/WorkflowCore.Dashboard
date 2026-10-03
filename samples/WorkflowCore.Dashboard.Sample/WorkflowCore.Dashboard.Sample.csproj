@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WorkflowCore" Version="3.21.0" />
+    <PackageReference Include="WorkflowCore.DSL" Version="3.21.0" />
+    <PackageReference Include="WorkflowCore.Persistence.Sqlite" Version="3.21.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WorkflowCore.Dashboard\WorkflowCore.Dashboard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Definitions\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

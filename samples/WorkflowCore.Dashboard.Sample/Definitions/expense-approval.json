@@ -1,0 +1,49 @@
+{
+  "Id": "ExpenseApproval",
+  "Version": 1,
+  "Description": "Loaded from JSON. Large expenses need an extra review, then the workflow waits for an ApprovalDecision event.",
+  "DataType": "WorkflowCore.Dashboard.Sample.Workflows.ApprovalData, WorkflowCore.Dashboard.Sample",
+  "Steps": [
+    {
+      "Id": "Submit",
+      "Name": "Submit request",
+      "StepType": "WorkflowCore.Dashboard.Sample.Steps.LogStep, WorkflowCore.Dashboard.Sample",
+      "Inputs": { "Message": "\"Expense submitted by \" + data.RequestedBy" },
+      "NextStepId": "CheckAmount"
+    },
+    {
+      "Id": "CheckAmount",
+      "Name": "Large amount?",
+      "StepType": "WorkflowCore.Primitives.If, WorkflowCore",
+      "Inputs": { "Condition": "data.Amount > 1000" },
+      "Do": [
+        [
+          {
+            "Id": "ExtraReview",
+            "Name": "Finance review",
+            "StepType": "WorkflowCore.Dashboard.Sample.Steps.WorkStep, WorkflowCore.Dashboard.Sample",
+            "Inputs": { "Milliseconds": "1500" }
+          }
+        ]
+      ],
+      "NextStepId": "AwaitDecision"
+    },
+    {
+      "Id": "AwaitDecision",
+      "Name": "Wait for decision",
+      "StepType": "WorkflowCore.Primitives.WaitFor, WorkflowCore",
+      "Inputs": {
+        "EventName": "\"ApprovalDecision\"",
+        "EventKey": "data.RequestId",
+        "EffectiveDate": "DateTime.Now"
+      },
+      "NextStepId": "Notify"
+    },
+    {
+      "Id": "Notify",
+      "Name": "Notify requester",
+      "StepType": "WorkflowCore.Dashboard.Sample.Steps.LogStep, WorkflowCore.Dashboard.Sample",
+      "Inputs": { "Message": "\"Decision sent to \" + data.RequestedBy" }
+    }
+  ]
+}

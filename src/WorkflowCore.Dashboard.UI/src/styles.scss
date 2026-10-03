@@ -1,0 +1,159 @@
+@use '@angular/material' as mat;
+
+html {
+  color-scheme: light dark;
+  @include mat.theme((
+    color: (
+      primary: mat.$violet-palette,
+      tertiary: mat.$cyan-palette,
+    ),
+    typography: (
+      plain-family: (system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif),
+      brand-family: (system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif),
+    ),
+    density: -1,
+  ));
+
+  // Workflow and step status colors, shared by chips, dots and the activity feed.
+  --wfc-runnable: light-dark(#1d64c8, #8ab8ff);
+  --wfc-suspended: light-dark(#a35f00, #ffc56e);
+  --wfc-complete: light-dark(#1a7a3a, #74d394);
+  --wfc-terminated: light-dark(#5f646c, #aab0b8);
+  --wfc-failed: light-dark(#c3261f, #ff8f86);
+  --wfc-waiting: light-dark(#7a3cc0, #cfa8ff);
+  --wfc-sleeping: light-dark(#00756a, #6fd8ca);
+  --wfc-pending: light-dark(#6b6f78, #9aa0aa);
+
+  --wfc-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  --wfc-page: var(--mat-sys-surface-container-low);
+  --wfc-card: var(--mat-sys-surface-container-lowest);
+  --wfc-border: var(--mat-sys-outline-variant);
+  --wfc-muted: var(--mat-sys-on-surface-variant);
+}
+
+// Toolbars (filters, pager, search) use the most compact form fields.
+.compact-fields { @include mat.form-field-density(-4); }
+
+html.theme-light { color-scheme: light; }
+html.theme-dark { color-scheme: dark; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--wfc-page);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono { font-family: var(--wfc-mono); font-size: 0.92em; }
+.muted { color: var(--wfc-muted); }
+
+a { color: var(--mat-sys-primary); }
+
+// Card surface used by every page section.
+.panel {
+  background: var(--wfc-card);
+  border: 1px solid var(--wfc-border);
+  border-radius: 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--wfc-border);
+
+  h2 { margin: 0; font: var(--mat-sys-title-small); flex: 1; }
+}
+
+// Tables inside panels: transparent so the panel surface shows through.
+.panel table.mat-mdc-table { background: transparent; }
+
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: color-mix(in srgb, var(--mat-sys-primary) 6%, transparent); }
+
+.empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--wfc-muted);
+}
+
+.error-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--wfc-failed) 12%, transparent);
+  color: var(--mat-sys-on-surface);
+  mat-icon { color: var(--wfc-failed); flex: none; }
+}
+
+.table-scroll { overflow-x: auto; }
+
+// Page heading shared by every page: title + subtitle on the left, actions on the right.
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+  h1 { margin: 0 0 4px; font: var(--mat-sys-headline-small); }
+  p { margin: 0; }
+}
+
+.heading-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  text-decoration: none;
+  color: var(--wfc-muted);
+  font: var(--mat-sys-label-large);
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { color: var(--mat-sys-primary); }
+}
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    padding: 10px 16px;
+    text-align: left;
+    white-space: nowrap;
+    font: var(--mat-sys-label-medium);
+    color: var(--wfc-muted);
+    border-bottom: 1px solid var(--wfc-border);
+  }
+
+  td {
+    padding: 10px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--wfc-border);
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+}
+
+dl.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  padding: 16px;
+  dt { color: var(--wfc-muted); font: var(--mat-sys-label-medium); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+}
+
+mat-progress-bar { margin-bottom: 8px; }
+
+// Outline labels float above the field; without room they are clipped by the dialog's scroll container.
+.mat-mdc-dialog-container .mat-mdc-dialog-title + .mat-mdc-dialog-content { padding-top: 8px; }

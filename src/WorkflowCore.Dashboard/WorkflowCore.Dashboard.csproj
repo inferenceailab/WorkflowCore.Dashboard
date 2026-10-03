@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <PackageId>WorkflowCore.Dashboard</PackageId>
+    <Description>Embeddable monitoring dashboard for Workflow Core.</Description>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    <UiProjectDir>$(MSBuildThisFileDirectory)..\WorkflowCore.Dashboard.UI\</UiProjectDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="WorkflowCore" Version="3.21.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="wwwroot\**" />
+  </ItemGroup>
+
+  <!--
+    Builds the Angular UI into wwwroot when it is missing, or always with -p:BuildDashboardUi=true.
+    -p:SkipDashboardUi=true builds the API without a UI.
+    The output is embedded into the assembly so the host app needs no static files of its own.
+  -->
+  <Target Name="BuildDashboardUi" BeforeTargets="BeforeBuild"
+          Condition="'$(SkipDashboardUi)' != 'true' And ('$(BuildDashboardUi)' == 'true' Or !Exists('wwwroot\index.html'))">
+    <Exec Command="npm ci" WorkingDirectory="$(UiProjectDir)" Condition="!Exists('$(UiProjectDir)node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(UiProjectDir)" />
+    <ItemGroup>
+      <EmbeddedResource Include="wwwroot\**" Exclude="@(EmbeddedResource)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

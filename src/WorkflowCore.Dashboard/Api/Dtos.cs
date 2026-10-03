@@ -1,0 +1,91 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace WorkflowCore.Dashboard.Api;
+
+public sealed record DashboardConfig(string Title, bool AllowActions, string PersistenceProvider, DateTime StartedAt);
+
+public sealed record DefinitionSummary(
+    string Id,
+    int Version,
+    string? Description,
+    string? DataType,
+    int StepCount,
+    bool IsLatest);
+
+public sealed record DefinitionDetail(
+    string Id,
+    int Version,
+    string? Description,
+    string? DataType,
+    string DefaultErrorBehavior,
+    string? DefaultErrorRetryInterval,
+    JsonNode? DataTemplate,
+    IReadOnlyList<StepDto> Steps);
+
+public sealed record StepDto(
+    int Id,
+    string? ExternalId,
+    string Name,
+    string StepType,
+    string StepTypeFullName,
+    IReadOnlyList<int> Children,
+    IReadOnlyList<OutcomeDto> Outcomes,
+    string? ErrorBehavior,
+    string? RetryInterval,
+    int? CompensationStepId);
+
+public sealed record OutcomeDto(int NextStep, string? Label, string? ExternalNextStepId);
+
+public sealed record InstanceSummary(
+    string Id,
+    string DefinitionId,
+    int Version,
+    string? Description,
+    string? Reference,
+    string Status,
+    DateTime CreateTime,
+    DateTime? CompleteTime,
+    DateTime? NextExecution,
+    int ActivePointers,
+    int FailedPointers,
+    string? CurrentStep);
+
+public sealed record InstanceDetail(
+    InstanceSummary Summary,
+    JsonNode? Data,
+    IReadOnlyList<PointerDto> ExecutionPointers);
+
+public sealed record PointerDto(
+    string Id,
+    int StepId,
+    string StepName,
+    string? StepType,
+    string Status,
+    bool Active,
+    DateTime? StartTime,
+    DateTime? EndTime,
+    DateTime? SleepUntil,
+    int RetryCount,
+    string? EventName,
+    string? EventKey,
+    bool EventPublished,
+    string? PredecessorId,
+    IReadOnlyList<string> Children,
+    IReadOnlyList<string> Scope,
+    JsonNode? Outcome,
+    JsonNode? EventData,
+    JsonNode? PersistenceData,
+    JsonNode? ContextItem);
+
+public sealed record Page<T>(IReadOnlyList<T> Items, int Skip, int Take, bool HasMore);
+
+public sealed record StartWorkflowRequest(string DefinitionId, int? Version, JsonElement? Data, string? Reference);
+
+public sealed record StartWorkflowResponse(string Id);
+
+public sealed record PublishEventRequest(string EventName, string EventKey, JsonElement? EventData, DateTime? EffectiveDate);
+
+public sealed record ActionResponse(bool Success);
+
+public sealed record ApiError(string Code, string Message);

@@ -1,0 +1,75 @@
+<div class="heading">
+  <div>
+    <h1>Overview</h1>
+    <p class="muted">
+      Lifecycle events since this app started {{ ago(config().startedAt) }}
+      <span class="sep">·</span>
+      {{ config().startedAt | date: 'medium' }}
+    </p>
+  </div>
+</div>
+
+<section class="tiles" aria-label="Lifecycle event totals">
+  @for (tile of tiles; track tile.type) {
+    <div class="tile panel" [class]="'tone-' + tile.tone">
+      <div class="tile-label">
+        <mat-icon>{{ tile.icon }}</mat-icon>
+        <span>{{ tile.label }}</span>
+      </div>
+      <div class="tile-value">{{ total(tile.type) }}</div>
+    </div>
+  }
+</section>
+
+<div class="columns">
+  <section class="panel feed">
+    <div class="panel-header">
+      <h2>Live activity</h2>
+      <mat-slide-toggle [checked]="showSteps()" (change)="showSteps.set($event.checked)">Step events</mat-slide-toggle>
+    </div>
+    <wfc-activity-list
+      [entries]="visibleFeed()"
+      emptyText="No events yet. Start a workflow to see activity here."
+    />
+  </section>
+
+  <aside class="side">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Running</h2>
+        <a mat-button routerLink="/instances" [queryParams]="{ status: 'Runnable' }">View all</a>
+      </div>
+      @if (runningError()) {
+        <div class="empty">{{ runningError() }}</div>
+      } @else {
+        @for (wf of running(); track wf.id) {
+          <a class="running-row" [routerLink]="['/instances', wf.id]">
+            <div class="running-main">
+              <strong>{{ wf.definitionId }}</strong>
+              <span class="muted mono">{{ short(wf.id) }}{{ wf.reference ? ' · ' + wf.reference : '' }}</span>
+            </div>
+            <div class="running-step">
+              @if (wf.failedPointers > 0) {
+                <mat-icon class="failed" title="Has failed steps">error</mat-icon>
+              }
+              <span>{{ wf.currentStep ?? '—' }}</span>
+            </div>
+          </a>
+        } @empty {
+          <div class="empty">Nothing running right now.</div>
+        }
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Definitions</h2>
+        <a mat-button routerLink="/definitions">Browse</a>
+      </div>
+      <div class="definitions">
+        <span class="count">{{ definitionCount() ?? '—' }}</span>
+        <span class="muted">registered workflows (C# and JSON/YAML)</span>
+      </div>
+    </section>
+  </aside>
+</div>

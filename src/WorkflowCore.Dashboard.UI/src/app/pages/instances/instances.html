@@ -1,0 +1,132 @@
+<div class="heading">
+  <div>
+    <h1>Workflow instances</h1>
+    <p class="muted">Filter, inspect and control running and finished workflows.</p>
+  </div>
+  <form class="lookup compact-fields" (submit)="$event.preventDefault(); lookup()">
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-icon matPrefix>tag</mat-icon>
+      <input matInput placeholder="Open by instance ID" [(ngModel)]="lookupId" name="lookupId" />
+    </mat-form-field>
+    <button mat-stroked-button type="submit" [disabled]="!lookupId().trim()">Open</button>
+  </form>
+</div>
+@if (lookupError()) {
+  <div class="error-banner lookup-error"><mat-icon>error</mat-icon><span>{{ lookupError() }}</span></div>
+}
+
+<section class="panel">
+  <div class="filters compact-fields">
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="query().status" (valueChange)="setFilter({ status: $event })">
+        <mat-option [value]="null">Any</mat-option>
+        @for (s of statuses; track s) {
+          <mat-option [value]="s">{{ s }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Definition</mat-label>
+      <mat-select [value]="query().definitionId" (valueChange)="setFilter({ definitionId: $event })">
+        <mat-option [value]="null">Any</mat-option>
+        @for (id of definitionIds(); track id) {
+          <mat-option [value]="id">{{ id }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Created from</mat-label>
+      <input matInput type="date" [value]="dateInput(query().createdFrom)"
+        (change)="setFilter({ createdFrom: $any($event.target).value || null })" />
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>Created to</mat-label>
+      <input matInput type="date" [value]="dateInput(query().createdTo)"
+        (change)="setFilter({ createdTo: $any($event.target).value || null })" />
+    </mat-form-field>
+    <button mat-button (click)="clearFilters()">Clear</button>
+    <span class="spacer"></span>
+    @if (newEvents() > 0) {
+      <button mat-stroked-button class="new-events" (click)="refresh()">
+        <mat-icon>bolt</mat-icon> {{ newEvents() }} new {{ newEvents() === 1 ? 'event' : 'events' }}
+      </button>
+    }
+    <button mat-icon-button matTooltip="Refresh" (click)="refresh()"><mat-icon>refresh</mat-icon></button>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (error()) {
+    <div class="error-banner list-error">
+      <mat-icon>{{ listingUnsupported() ? 'info' : 'error' }}</mat-icon>
+      <span>{{ error() }}</span>
+    </div>
+  }
+
+  <div class="table-scroll">
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Instance</th>
+          <th>Definition</th>
+          <th>Status</th>
+          <th>Current step</th>
+          <th>Created</th>
+          <th class="num">Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (wf of items(); track wf.id) {
+          <tr class="clickable" [routerLink]="['/instances', wf.id]">
+            <td>
+              <div class="mono id" [title]="wf.id">{{ short(wf.id) }}</div>
+              @if (wf.reference) {
+                <div class="muted small">{{ wf.reference }}</div>
+              }
+            </td>
+            <td>
+              {{ wf.definitionId }} <span class="muted">v{{ wf.version }}</span>
+            </td>
+            <td><wfc-status [status]="wf.status" /></td>
+            <td>
+              <div class="current">
+                @if (wf.failedPointers > 0) {
+                  <mat-icon class="failed" [matTooltip]="wf.failedPointers + ' failed step(s)'">error</mat-icon>
+                }
+                <span>{{ wf.currentStep ?? '—' }}</span>
+              </div>
+            </td>
+            <td [title]="wf.createTime | date: 'medium'">{{ ago(wf.createTime) }}</td>
+            <td class="num">{{ duration(wf) }}</td>
+          </tr>
+        } @empty {
+          @if (!loading() && !error()) {
+            <tr>
+              <td colspan="6" class="empty">No instances match these filters.</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager compact-fields">
+    <mat-form-field subscriptSizing="dynamic" class="page-size">
+      <mat-label>Per page</mat-label>
+      <mat-select [value]="query().take" (valueChange)="setFilter({ take: $event })">
+        @for (n of pageSizes; track n) {
+          <mat-option [value]="n">{{ n }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <span class="muted">{{ pageLabel() }}</span>
+    <button mat-icon-button aria-label="Previous page" [disabled]="query().skip === 0" (click)="page(-1)">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <button mat-icon-button aria-label="Next page" [disabled]="!hasMore()" (click)="page(1)">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+</section>
