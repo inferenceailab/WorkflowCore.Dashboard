@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpInterceptorFn, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -19,6 +19,13 @@ import {
 export function dashboardUrl(path: string): string {
   return new URL(path, document.baseURI).toString();
 }
+
+/**
+ * Marks requests as coming from the dashboard. The server rejects changes without this header, which stops
+ * other websites from triggering them (they cannot add custom headers without CORS approval).
+ */
+export const dashboardHeaderInterceptor: HttpInterceptorFn = (req, next) =>
+  req.url.startsWith(dashboardUrl('api/')) ? next(req.clone({ setHeaders: { 'X-Wfc-Dashboard': '1' } })) : next(req);
 
 export function errorMessage(err: unknown): string {
   if (err instanceof HttpErrorResponse) {

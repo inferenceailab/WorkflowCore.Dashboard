@@ -16,6 +16,12 @@ public class DesignerOptions
     /// </summary>
     public List<Assembly> StepAssemblies { get; } = new();
 
+    /// <summary>
+    /// When false (the default), definitions may only use the step types and data types the catalog offers,
+    /// so a dashboard user cannot make Workflow Core create other types found in the app's assemblies.
+    /// </summary>
+    public bool AllowAnyType { get; set; }
+
     /// <summary>How often each node checks the store for versions published on other nodes.</summary>
     public TimeSpan SyncInterval { get; set; } = TimeSpan.FromSeconds(30);
 

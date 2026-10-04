@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.*" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,4 +5,31 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Version>0.1.0</Version>
   </PropertyGroup>
+
+  <!-- NuGet package metadata, shared by the three packages. -->
+  <PropertyGroup>
+    <Authors>inferenceailab</Authors>
+    <Company>inferenceailab</Company>
+    <Copyright>Copyright (c) 2026 inferenceailab</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/inferenceailab/WorkflowCore.Dashboard</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/inferenceailab/WorkflowCore.Dashboard</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>workflow-core;workflow;dashboard;designer;monitoring;aspnetcore</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>https://github.com/inferenceailab/WorkflowCore.Dashboard/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <!-- Source Link (built into the .NET 8+ SDK) lets debuggers step into the exact sources of a release. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- XML docs ship in the packages for IntelliSense; not every public member needs one. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
 </Project>

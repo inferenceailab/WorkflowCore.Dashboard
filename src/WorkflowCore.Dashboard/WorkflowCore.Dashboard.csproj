@@ -5,7 +5,7 @@
     <PackageId>WorkflowCore.Dashboard</PackageId>
     <Description>Embeddable monitoring dashboard for Workflow Core.</Description>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
-    <UiProjectDir>$(MSBuildThisFileDirectory)..\WorkflowCore.Dashboard.UI\</UiProjectDir>
+    <UiProjectDir>$(MSBuildThisFileDirectory)../WorkflowCore.Dashboard.UI/</UiProjectDir>
   </PropertyGroup>
 
   <ItemGroup>

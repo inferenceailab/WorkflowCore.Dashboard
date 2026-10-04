@@ -88,6 +88,15 @@ public static class DashboardExtensions
     {
         var http = context.HttpContext;
         var options = http.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
+
+        var headers = http.Response.Headers;
+        headers.XContentTypeOptions = "nosniff";
+        headers["Referrer-Policy"] = "no-referrer";
+        // No framing by other sites unless configured: the dashboard has buttons worth clickjacking.
+        headers.ContentSecurityPolicy = $"frame-ancestors {options.FrameAncestors ?? "'none'"}";
+        if (options.FrameAncestors is null)
+            headers.XFrameOptions = "DENY";
+
         return options.Authorization(http)
             ? next(context)
             : ValueTask.FromResult<object?>(Results.StatusCode(StatusCodes.Status403Forbidden));
