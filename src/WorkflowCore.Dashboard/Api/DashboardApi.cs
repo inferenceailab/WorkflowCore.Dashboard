@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
@@ -40,17 +41,31 @@ internal static class DashboardApi
     private static readonly DateTime StartedAt = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
     private static IResult GetConfig(
-        IOptions<DashboardOptions> options, IPersistenceProvider store, IDashboardJournal journal, IEnumerable<IDashboardExtension> extensions)
+        HttpContext http, IOptions<DashboardOptions> options, IPersistenceProvider store, IDashboardJournal journal, IEnumerable<IDashboardExtension> extensions)
     {
         var o = options.Value;
+        // What this user may do; the UI hides action buttons accordingly.
+        var canAct = o.AllowActions && (o.ActionAuthorization?.Invoke(http) ?? true);
         var retention = journal.IsPersistent && o.JournalRetention > TimeSpan.Zero ? (int?)Math.Ceiling(o.JournalRetention.TotalDays) : null;
         return Ok(new DashboardConfig(
             o.Title,
-            o.AllowActions,
+            canAct,
             store.GetType().Name,
             StartedAt,
             new JournalInfo(journal.Name, journal.IsPersistent, retention, o.JournalStepEvents),
-            extensions.Select(e => e.Feature).ToList()));
+            extensions.Select(e => e.Feature).ToList(),
+            CurrentUser(http.User),
+            o.SignOutPath));
+    }
+
+    private static DashboardUser? CurrentUser(ClaimsPrincipal user)
+    {
+        if (user.Identity?.IsAuthenticated != true)
+            return null;
+        var email = user.FindFirst("email")?.Value ?? user.FindFirst(ClaimTypes.Email)?.Value;
+        var name = user.Identity.Name ?? user.FindFirst("name")?.Value ?? user.FindFirst("preferred_username")?.Value ?? email
+            ?? user.FindFirst("sub")?.Value ?? "Signed in";
+        return new DashboardUser(name, email, user.FindFirst(DashboardClaims.Role)?.Value);
     }
 
     private static IResult GetDefinitions(IWorkflowRegistry registry)
@@ -196,9 +211,11 @@ internal static class DashboardApi
         }
 
         var options = http.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
-        return options.AllowActions
-            ? next(context)
-            : ValueTask.FromResult<object?>(Error(StatusCodes.Status403Forbidden, "read-only", "The dashboard is read-only."));
+        if (!options.AllowActions)
+            return ValueTask.FromResult<object?>(Error(StatusCodes.Status403Forbidden, "read-only", "The dashboard is read-only."));
+        if (options.ActionAuthorization is { } canAct && !canAct(http))
+            return ValueTask.FromResult<object?>(Error(StatusCodes.Status403Forbidden, "not-allowed", "Your role can view the dashboard but not change workflows."));
+        return next(context);
     }
 
     private static async Task<T?> ReadBody<T>(HttpRequest request)

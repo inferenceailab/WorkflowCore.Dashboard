@@ -36,16 +36,18 @@ flowchart LR
 | `WorkflowCore.Dashboard` | API, SignalR hub, relay, in-memory journal, embedded UI | WorkflowCore, ASP.NET Core |
 | `WorkflowCore.Dashboard.EntityFramework` | EF Core journal | the above, EF Core Relational 8+ |
 | `WorkflowCore.Dashboard.Designer` | Designer API, step catalog, validation, sync | the above, WorkflowCore.DSL |
+| `WorkflowCore.Dashboard.OpenIdConnect` | Sign-in: cookie and OpenID Connect schemes, provider presets, role mapping, sign-out pages | the above, ASP.NET Core OpenID Connect (one build per .NET version) |
 
-Optional packages plug in through `DashboardBuilder` (`UseJournal`) and `IDashboardExtension` (extra API endpoints and a feature flag for the UI).
+Optional packages plug in through `DashboardBuilder` (`UseJournal`, `Services`) and `IDashboardExtension` (extra endpoints under `/api` or the dashboard root, and a feature flag for the UI).
 
 ## Request path
 
 `MapWorkflowCoreDashboard` creates one route group:
 
-1. **Authorization filter** (whole group): sets security headers and applies `DashboardOptions.Authorization`.
-2. **Change filter** (`/api`): POST, PUT and DELETE need the `X-Wfc-Dashboard` header, no `Sec-Fetch-Site: cross-site`, and `AllowActions`.
-3. **Endpoints**: dashboard API, extension endpoints, the hub, and the UI with fallback to `index.html`, whose `<base href>` is rewritten to the mount path.
+1. **Authorization policy** (whole group, when `AuthorizationPolicy` is set): ASP.NET Core sign-in; signed-out browsers are sent to the identity provider, API calls get 401.
+2. **Authorization filter** (whole group): sets security headers and applies `DashboardOptions.Authorization`. Signed-in users without access get an explanatory page. Endpoints marked `AllowAnonymous` (sign-out pages) skip it.
+3. **Change filter** (`/api`): POST, PUT and DELETE need the `X-Wfc-Dashboard` header, no `Sec-Fetch-Site: cross-site`, `AllowActions`, and `ActionAuthorization`.
+4. **Endpoints**: dashboard API, extension endpoints, the hub, and the UI with fallback to `index.html`, whose `<base href>` is rewritten to the mount path.
 
 ## Event path
 

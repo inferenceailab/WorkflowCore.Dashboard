@@ -19,7 +19,7 @@ curl -X POST https://host/workflows/api/events \
 
 | Method and path | Purpose |
 |---|---|
-| `GET /config` | Title, read-only flag, persistence provider, journal info, installed features |
+| `GET /config` | Title, whether this user may change things (`allowActions`), persistence provider, journal info, installed features, the signed-in `user` (`name`, `email`, `role`) and `signOutPath` |
 | `GET /definitions` | Registered definitions (every version) |
 | `GET /definitions/{id}/{version}` | One definition with its steps and default data |
 | `GET /instances` | Instances. Query: `status`, `definitionId`, `createdFrom`, `createdTo`, `skip`, `take` |
@@ -80,6 +80,7 @@ An entry can be sent twice with the same `id`: the second time with `details` (t
 |---|---|---|
 | `forbidden-origin` | 403 | A change without the `X-Wfc-Dashboard` header, or from another site |
 | `read-only` | 403 | `AllowActions` is `false` |
+| `not-allowed` | 403 | `ActionAuthorization` refused this user a change (a viewer) |
 | `not-found`, `definition-not-found`, `instance-not-found` | 404 | Unknown route, definition or instance |
 | `invalid-request`, `invalid-status`, `invalid-data`, `invalid-id`, `invalid-definition`, `too-large` | 400 | The request could not be used |
 | `listing-not-supported` | 501 | The provider cannot list instances and there is no index |

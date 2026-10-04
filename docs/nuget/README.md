@@ -15,7 +15,8 @@ app.MapWorkflowCoreDashboard("/workflows");
 | `WorkflowCore.Dashboard` | The UI, its API and live updates; activity kept in memory |
 | `WorkflowCore.Dashboard.EntityFramework` | Activity history and instance index in any EF Core relational database |
 | `WorkflowCore.Dashboard.Designer` | The visual designer for JSON/YAML workflows |
+| `WorkflowCore.Dashboard.OpenIdConnect` | Sign-in with Okta, Entra ID, Auth0, Keycloak, Google, Cognito or any OpenID Connect provider |
 
-By default the dashboard only answers requests from the same machine. Read the [security guide](https://github.com/inferenceailab/WorkflowCore.Dashboard/blob/main/docs/Security.md) before exposing it.
+By default the dashboard only answers requests from the same machine. To let your team in, add [sign-in with your identity provider](https://github.com/inferenceailab/WorkflowCore.Dashboard/blob/main/docs/Identity-Providers.md), and read the [security guide](https://github.com/inferenceailab/WorkflowCore.Dashboard/blob/main/docs/Security.md) before exposing it.
 
 Documentation, screenshots and the sample app: https://github.com/inferenceailab/WorkflowCore.Dashboard

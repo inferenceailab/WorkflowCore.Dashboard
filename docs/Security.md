@@ -14,7 +14,9 @@ Treat dashboard access like production admin access.
 
 ## Exposing the dashboard
 
-The dashboard uses your app's own sign-in. Its UI calls the API on the same origin, so any **cookie-based** scheme works: cookie authentication, OpenID Connect (Microsoft Entra ID, Auth0, Keycloak…) or Windows authentication. A bearer-token-only setup does not work for the UI, because the UI does not attach tokens to its requests.
+**The quickest way:** the `WorkflowCore.Dashboard.OpenIdConnect` package adds sign-in with Okta, Microsoft Entra ID, Auth0, Keycloak, Google, Amazon Cognito or any OpenID Connect provider, with admin and viewer roles, in one call. See [Identity providers](Identity-Providers.md).
+
+The recipes below are for apps that already have their own sign-in. The dashboard uses your app's own sign-in. Its UI calls the API on the same origin, so any **cookie-based** scheme works: cookie authentication, OpenID Connect (Microsoft Entra ID, Auth0, Keycloak…) or Windows authentication. A bearer-token-only setup does not work for the UI, because the UI does not attach tokens to its requests.
 
 One rule on the mapped route group protects everything: the UI (including deep links), the API and the live-updates hub.
 
@@ -44,21 +46,19 @@ Signed-out users are sent to the login page; signed-in users without the role ge
 
 ### Viewers and admins
 
-`AllowActions = false` makes the dashboard read-only for everyone. To let some people watch and others act, decide per request instead: reads are GET, changes are POST, PUT or DELETE.
+`AllowActions = false` makes the dashboard read-only for everyone. To let some people watch and others act, use `ActionAuthorization`:
 
 ```csharp
 builder.Services.AddWorkflowCoreDashboard(options =>
 {
-    options.Authorization = http =>
-        http.User.IsInRole("workflow-admin")
-        || (http.User.IsInRole("workflow-viewer")
-            && (HttpMethods.IsGet(http.Request.Method) || HttpMethods.IsHead(http.Request.Method)));
+    options.Authorization = http => http.User.IsInRole("workflow-admin") || http.User.IsInRole("workflow-viewer");
+    options.ActionAuthorization = http => http.User.IsInRole("workflow-admin");
 });
 
 app.MapWorkflowCoreDashboard("/workflows").RequireAuthorization();   // sign-in required
 ```
 
-Viewers see the action buttons, but using them returns "access denied".
+Viewers see the dashboard without its action buttons, and the API refuses their changes with `not-allowed`.
 
 ### Windows authentication (intranet)
 

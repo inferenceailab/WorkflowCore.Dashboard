@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -21,6 +22,11 @@ public interface IDashboardExtension
     string Feature { get; }
 
     void MapEndpoints(RouteGroupBuilder api);
+
+    /// <summary>Endpoints directly under the dashboard prefix, outside <c>/api</c>, such as sign-out pages.</summary>
+    void MapDashboardEndpoints(RouteGroupBuilder dashboard)
+    {
+    }
 }
 
 /// <summary>Returned by <c>AddWorkflowCoreDashboard</c> to configure where the activity journal is stored.</summary>
@@ -51,6 +57,7 @@ public static class DashboardExtensions
             options.Configure(configure);
 
         services.AddSignalR();
+        services.TryAddSingleton<DashboardRoute>();
         services.TryAddSingleton<IDashboardJournal, InMemoryJournal>();
         services.TryAddSingleton<JournalWriter>();
         services.AddHostedService(sp => sp.GetRequiredService<JournalWriter>());
@@ -70,15 +77,24 @@ public static class DashboardExtensions
         if (prefix == "/")
             throw new ArgumentException("The dashboard needs its own path prefix, such as \"/workflows\".", nameof(prefix));
 
+        var services = endpoints.ServiceProvider;
+        services.GetRequiredService<DashboardRoute>().Prefix = prefix;
+        var options = services.GetRequiredService<IOptions<DashboardOptions>>().Value;
+
         var group = endpoints.MapGroup(prefix);
+        if (options.AuthorizationPolicy is { } policy)
+            group.RequireAuthorization(policy);
         group.AddEndpointFilter(Authorize);
         group.MapHub<DashboardHub>("/hub");
 
         var api = group.MapGroup("/api");
         api.AddEndpointFilter(DashboardApi.RequireActions);
         DashboardApi.Map(api);
-        foreach (var extension in endpoints.ServiceProvider.GetServices<IDashboardExtension>())
+        foreach (var extension in services.GetServices<IDashboardExtension>())
+        {
             extension.MapEndpoints(api);
+            extension.MapDashboardEndpoints(group);
+        }
 
         EmbeddedUi.Map(group, prefix);
         return group;
@@ -87,6 +103,10 @@ public static class DashboardExtensions
     private static ValueTask<object?> Authorize(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var http = context.HttpContext;
+        // Pages such as "signed out" must work for everyone.
+        if (http.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() is not null)
+            return next(context);
+
         var options = http.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
 
         var headers = http.Response.Headers;
@@ -97,8 +117,12 @@ public static class DashboardExtensions
         if (options.FrameAncestors is null)
             headers.XFrameOptions = "DENY";
 
-        return options.Authorization(http)
-            ? next(context)
-            : ValueTask.FromResult<object?>(Results.StatusCode(StatusCodes.Status403Forbidden));
+        if (options.Authorization(http))
+            return next(context);
+
+        // A signed-in user without access opening the UI gets a page saying who they are and why, not a bare 403.
+        return ValueTask.FromResult<object?>(http.User.Identity?.IsAuthenticated == true && AccessDeniedPage.IsPageRequest(http)
+            ? AccessDeniedPage.Render(http, options)
+            : Results.StatusCode(StatusCodes.Status403Forbidden));
     }
 }

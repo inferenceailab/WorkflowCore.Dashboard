@@ -47,6 +47,25 @@ public class DashboardOptions
     public Func<HttpContext, bool> Authorization { get; set; } = IsLocalRequest;
 
     /// <summary>
+    /// Decides whether a request that passed <see cref="Authorization"/> may also change things: start, suspend,
+    /// resume, terminate, publish events, and the designer. <c>null</c> lets everyone with access act.
+    /// Users who may not act see the dashboard without its action buttons.
+    /// </summary>
+    public Func<HttpContext, bool>? ActionAuthorization { get; set; }
+
+    /// <summary>
+    /// An ASP.NET Core authorization policy applied to the whole dashboard (UI, API and hub),
+    /// the same as calling <c>RequireAuthorization(policy)</c> on the mapped group.
+    /// </summary>
+    public string? AuthorizationPolicy { get; set; }
+
+    /// <summary>
+    /// Target of the UI's sign-out link: relative to the dashboard (<c>"signout"</c>) or an absolute path
+    /// (<c>"/account/logout"</c>). <c>null</c> hides the link.
+    /// </summary>
+    public string? SignOutPath { get; set; }
+
+    /// <summary>
     /// Origins allowed to show the dashboard in a frame, as a CSP <c>frame-ancestors</c> value such as
     /// <c>'self' https://portal.example.com</c>. By default no site may frame it, which prevents clickjacking.
     /// </summary>

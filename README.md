@@ -27,7 +27,8 @@
 - **Activity history**: kept in your database (any EF Core relational provider), surviving restarts.
 - **Designer**: build and edit JSON/YAML workflows visually, then publish them as new versions.
 - **Every persistence provider**: built only on Workflow Core's own abstractions.
-- **Secure by default**: local requests only until you configure authorization, CSRF and clickjacking protection, optional read-only mode.
+- **Sign-in with your identity provider**: Okta, Microsoft Entra ID, Auth0, Keycloak, Google, Amazon Cognito or any OpenID Connect provider, with admin and viewer roles.
+- **Secure by default**: local requests only until you configure sign-in, CSRF and clickjacking protection, optional read-only mode.
 
 | Instance flowchart | Designer |
 |---|---|
@@ -52,8 +53,9 @@ Run the app and open `/workflows` from the same machine. For history that surviv
 | `WorkflowCore.Dashboard` | The UI, its API and live updates; activity kept in memory |
 | `WorkflowCore.Dashboard.EntityFramework` | Activity history and instance index in SQL Server, PostgreSQL, MySQL, SQLite or Oracle |
 | `WorkflowCore.Dashboard.Designer` | The visual designer for JSON/YAML workflows |
+| `WorkflowCore.Dashboard.OpenIdConnect` | Sign-in with Okta, Entra ID, Auth0, Keycloak, Google, Cognito or any OpenID Connect provider |
 
-Packages are attached to each [GitHub release](https://github.com/inferenceailab/WorkflowCore.Dashboard/releases). They target .NET 8 and run on .NET 8, 9 and 10.
+Packages are attached to each [GitHub release](https://github.com/inferenceailab/WorkflowCore.Dashboard/releases). They run on .NET 8, 9 and 10.
 
 ### Try the sample
 
@@ -72,6 +74,7 @@ Open http://localhost:5290/workflows. The sample runs C#, JSON and YAML workflow
 | [Getting started](docs/Getting-Started.md) | Install, configure, first run |
 | [Configuration](docs/Configuration.md) | Every option of the dashboard, journal and designer |
 | [Security](docs/Security.md) | Exposing the dashboard safely; threat model |
+| [Identity providers](docs/Identity-Providers.md) | Sign-in with Okta, Entra ID, Auth0, Keycloak, Google, Cognito and others |
 | [Activity journal](docs/Activity-Journal.md) | History, instance index, retention, several nodes |
 | [Workflow graph](docs/Workflow-Graph.md) | How flowcharts are drawn and colored |
 | [Designer](docs/Designer.md) | Building, validating and publishing workflows |

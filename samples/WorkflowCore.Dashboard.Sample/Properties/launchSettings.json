@@ -8,6 +8,15 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    },
+    "Keycloak": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "workflows",
+      "applicationUrl": "http://localhost:5290",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Keycloak"
+      }
     }
   }
 }

@@ -34,6 +34,17 @@ export interface DashboardConfig {
   journal: JournalInfo;
   /** Add-ons installed on the server, e.g. "designer". */
   features: string[];
+  /** The signed-in user, when the dashboard sits behind sign-in. */
+  user: DashboardUser | null;
+  /** Sign-out link, relative to the dashboard or absolute; null hides it. */
+  signOutPath: string | null;
+}
+
+export interface DashboardUser {
+  name: string;
+  email: string | null;
+  /** 'admin', 'viewer', or null when the app does not assign dashboard roles. */
+  role: string | null;
 }
 
 export interface DefinitionSummary {

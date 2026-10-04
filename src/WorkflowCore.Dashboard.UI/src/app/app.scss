@@ -145,6 +145,24 @@ nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
   .live[data-state='connected'] .pulse { animation: none; }
 }
 
+.avatar {
+  width: 34px;
+  height: 34px;
+  margin-left: 4px;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  font: var(--mat-sys-label-large);
+  letter-spacing: 0.02em;
+  color: var(--mat-sys-on-primary-container);
+  background: var(--mat-sys-primary-container);
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
 .page {
   padding: 24px;
   max-width: 1400px;

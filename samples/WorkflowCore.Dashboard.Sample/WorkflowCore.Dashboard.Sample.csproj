@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\src\WorkflowCore.Dashboard\WorkflowCore.Dashboard.csproj" />
     <ProjectReference Include="..\..\src\WorkflowCore.Dashboard.EntityFramework\WorkflowCore.Dashboard.EntityFramework.csproj" />
     <ProjectReference Include="..\..\src\WorkflowCore.Dashboard.Designer\WorkflowCore.Dashboard.Designer.csproj" />
+    <ProjectReference Include="..\..\src\WorkflowCore.Dashboard.OpenIdConnect\WorkflowCore.Dashboard.OpenIdConnect.csproj" />
   </ItemGroup>
 
   <ItemGroup>
