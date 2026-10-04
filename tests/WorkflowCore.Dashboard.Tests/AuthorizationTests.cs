@@ -111,17 +111,22 @@ public sealed class AuthorizationTests
     [Fact]
     public async Task Viewers_can_read_while_only_admins_can_change()
     {
-        // RequireAuthorization() sends signed-out users to the login; the function decides per role.
+        // RequireAuthorization() sends signed-out users to the login; the functions decide per role.
         using var host = await Host(
-            o => o.Authorization = http =>
-                http.User.IsInRole("workflow-admin")
-                || (http.User.IsInRole("workflow-viewer") && (HttpMethods.IsGet(http.Request.Method) || HttpMethods.IsHead(http.Request.Method))),
+            o =>
+            {
+                o.Authorization = http => http.User.IsInRole("workflow-admin") || http.User.IsInRole("workflow-viewer");
+                o.ActionAuthorization = http => http.User.IsInRole("workflow-admin");
+            },
             g => g.RequireAuthorization());
         var client = host.GetTestClient();
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(Get("/workflows/", null))).StatusCode);
 
-        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(Get("/workflows/api/config", "val:workflow-viewer"))).StatusCode);
+        var viewerConfig = await client.SendAsync(Get("/workflows/api/config", "val:workflow-viewer"));
+        Assert.Equal(HttpStatusCode.OK, viewerConfig.StatusCode);
+        // The UI hides the action buttons for viewers.
+        Assert.Contains("\"allowActions\":false", await viewerConfig.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(PublishEvent("val:workflow-viewer"))).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(PublishEvent("ada:workflow-admin"))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(Get("/workflows/api/config", "sam"))).StatusCode);

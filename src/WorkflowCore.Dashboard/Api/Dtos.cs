@@ -9,7 +9,12 @@ public sealed record DashboardConfig(
     string PersistenceProvider,
     DateTime StartedAt,
     JournalInfo Journal,
-    IReadOnlyList<string> Features);
+    IReadOnlyList<string> Features,
+    DashboardUser? User,
+    string? SignOutPath);
+
+/// <param name="Role"><c>admin</c>, <c>viewer</c>, or <c>null</c> when the app does not assign dashboard roles.</param>
+public sealed record DashboardUser(string Name, string? Email, string? Role);
 
 public sealed record JournalInfo(string Name, bool Persistent, int? RetentionDays, bool StepEvents);
 

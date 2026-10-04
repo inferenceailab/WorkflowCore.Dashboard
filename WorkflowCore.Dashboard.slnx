@@ -5,6 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/WorkflowCore.Dashboard.Designer/WorkflowCore.Dashboard.Designer.csproj" />
     <Project Path="src/WorkflowCore.Dashboard.EntityFramework/WorkflowCore.Dashboard.EntityFramework.csproj" />
+    <Project Path="src/WorkflowCore.Dashboard.OpenIdConnect/WorkflowCore.Dashboard.OpenIdConnect.csproj" />
     <Project Path="src/WorkflowCore.Dashboard/WorkflowCore.Dashboard.csproj" />
   </Folder>
   <Folder Name="/tests/">

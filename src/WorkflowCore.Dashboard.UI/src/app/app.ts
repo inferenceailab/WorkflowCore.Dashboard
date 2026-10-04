@@ -4,11 +4,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
+import { MatDivider } from '@angular/material/divider';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltip } from '@angular/material/tooltip';
 import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
-import { ApiService } from './core/api.service';
+import { ApiService, dashboardUrl } from './core/api.service';
 import { LiveService } from './core/live.service';
 import { PublishEventDialog } from './dialogs/publish-event-dialog';
 import { StartWorkflowDialog } from './dialogs/start-workflow-dialog';
@@ -19,7 +21,18 @@ const THEME_KEY = 'wfc-dashboard-theme';
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatSidenavModule, MatIcon, MatIconButton, MatButton, MatTooltip],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    MatSidenavModule,
+    MatIcon,
+    MatIconButton,
+    MatButton,
+    MatTooltip,
+    MatMenuModule,
+    MatDivider,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -58,6 +71,30 @@ export class App {
     ),
     { initialValue: false },
   );
+
+  protected readonly user = computed(() => this.config().user);
+
+  protected readonly initials = computed(() => {
+    const words = (this.user()?.name ?? '').split(/[\s@._-]+/).filter(Boolean);
+    return ((words[0]?.[0] ?? '?') + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase();
+  });
+
+  protected readonly roleLabel = computed(() => {
+    switch (this.user()?.role) {
+      case 'admin':
+        return 'Admin';
+      case 'viewer':
+        return 'Viewer: read-only';
+      default:
+        return null;
+    }
+  });
+
+  /** A full page load, not a router link: signing out goes through the server and the identity provider. */
+  protected readonly signOutHref = computed(() => {
+    const path = this.config().signOutPath;
+    return path ? (path.startsWith('/') || path.includes('://') ? path : dashboardUrl(path)) : null;
+  });
 
   protected readonly liveLabel = computed(() => {
     switch (this.live.state()) {

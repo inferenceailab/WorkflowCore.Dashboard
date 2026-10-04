@@ -67,19 +67,27 @@ A **Designer** item appears in the navigation. See [Designer](Designer.md).
 
 ## 5. Allow access from other machines
 
-Put the dashboard behind your app's authentication before exposing it:
+Add sign-in with your identity provider. For example, with Okta:
 
-```csharp
-builder.Services.AddWorkflowCoreDashboard(options =>
-{
-    // The authorization policy below decides who gets in.
-    options.Authorization = _ => true;
-});
-
-app.MapWorkflowCoreDashboard("/workflows").RequireAuthorization("WorkflowAdmins");
+```shell
+dotnet add package WorkflowCore.Dashboard.OpenIdConnect
 ```
 
-Read [Security](Security.md) first: anyone who can open the dashboard can see workflow data and, unless it is read-only, change workflows.
+```csharp
+builder.Services.AddWorkflowCoreDashboard()
+    .UseOkta(okta =>
+    {
+        okta.Domain = "acme.okta.com";
+        okta.ClientId = builder.Configuration["Okta:ClientId"]!;
+        okta.ClientSecret = builder.Configuration["Okta:ClientSecret"];
+        okta.AdminGroups.Add("Workflow Admins");    // can change workflows
+        okta.ViewerGroups.Add("Engineering");       // can watch
+    });
+```
+
+[Identity providers](Identity-Providers.md) has the setup for Okta, Entra ID, Auth0, Keycloak, Google, Cognito and others. If your app already has its own sign-in, see [Security](Security.md#exposing-the-dashboard) instead.
+
+Anyone who can open the dashboard can see workflow data, and admins can change workflows: read [Security](Security.md) before exposing it.
 
 ## Try the sample
 

@@ -8,3 +8,6 @@ src/WorkflowCore.Dashboard/wwwroot/
 samples/**/*.db
 samples/**/*.db-shm
 samples/**/*.db-wal
+
+# Browser test output
+.playwright-mcp/

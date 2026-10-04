@@ -1,0 +1,76 @@
+{
+  "realm": "workflows",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      { "name": "workflow-admin", "description": "Can change workflows in the dashboard" },
+      { "name": "workflow-viewer", "description": "Can see the dashboard" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "workflow-dashboard",
+      "name": "Workflow Core dashboard",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dev-only-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:5290/workflows/signin-oidc"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5290/workflows/signout-callback-oidc"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles in ID token",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_access.roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "ada",
+      "enabled": true,
+      "email": "ada@example.com",
+      "emailVerified": true,
+      "firstName": "Ada",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "ada", "temporary": false }],
+      "realmRoles": ["default-roles-workflows", "workflow-admin"]
+    },
+    {
+      "username": "val",
+      "enabled": true,
+      "email": "val@example.com",
+      "emailVerified": true,
+      "firstName": "Val",
+      "lastName": "Viewer",
+      "credentials": [{ "type": "password", "value": "val", "temporary": false }],
+      "realmRoles": ["default-roles-workflows", "workflow-viewer"]
+    },
+    {
+      "username": "mo",
+      "enabled": true,
+      "email": "mo@example.com",
+      "emailVerified": true,
+      "firstName": "Mo",
+      "lastName": "Marketing",
+      "credentials": [{ "type": "password", "value": "mo", "temporary": false }],
+      "realmRoles": ["default-roles-workflows"]
+    }
+  ]
+}

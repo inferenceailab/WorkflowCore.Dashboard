@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpInterceptorFn, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, throwError } from 'rxjs';
 import {
   ActivityEntry,
   ActivityTotals,
@@ -24,14 +24,39 @@ export function dashboardUrl(path: string): string {
  * Marks requests as coming from the dashboard. The server rejects changes without this header, which stops
  * other websites from triggering them (they cannot add custom headers without CORS approval).
  */
-export const dashboardHeaderInterceptor: HttpInterceptorFn = (req, next) =>
-  req.url.startsWith(dashboardUrl('api/')) ? next(req.clone({ setHeaders: { 'X-Wfc-Dashboard': '1' } })) : next(req);
+export const dashboardHeaderInterceptor: HttpInterceptorFn = (req, next) => {
+  if (!req.url.startsWith(dashboardUrl('api/'))) return next(req);
+  return next(req.clone({ setHeaders: { 'X-Wfc-Dashboard': '1' } })).pipe(
+    catchError((err: unknown) => {
+      if (err instanceof HttpErrorResponse && err.status === 401) reloadToSignIn();
+      return throwError(() => err);
+    }),
+  );
+};
+
+const RELOAD_KEY = 'wfc-dashboard-signin-reload';
+
+/**
+ * The sign-in session has ended: reloading the page sends the browser through sign-in and back here.
+ * At most once a minute, so an app that answers 401 for another reason cannot cause a reload loop.
+ */
+function reloadToSignIn(): void {
+  try {
+    const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
+    if (Date.now() - last < 60_000) return;
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+  } catch {
+    return;
+  }
+  location.reload();
+}
 
 export function errorMessage(err: unknown): string {
   if (err instanceof HttpErrorResponse) {
     const body = err.error as Partial<ApiError> | null;
     if (body?.message) return body.message;
     if (err.status === 0) return 'Cannot reach the dashboard API.';
+    if (err.status === 401) return 'Your session has ended. Reload the page to sign in again.';
     if (err.status === 403) return 'Access to the dashboard was denied.';
     return `${err.status} ${err.statusText}`;
   }
@@ -54,6 +79,8 @@ export class ApiService {
     startedAt: new Date().toISOString(),
     journal: { name: '', persistent: false, retentionDays: null, stepEvents: true },
     features: [],
+    user: null,
+    signOutPath: null,
   });
 
   hasFeature(name: string): boolean {

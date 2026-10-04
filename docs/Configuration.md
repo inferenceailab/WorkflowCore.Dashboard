@@ -19,6 +19,9 @@ app.MapWorkflowCoreDashboard("/workflows");
 | `Title` | `"Workflow Core"` | Shown in the header and the browser tab. |
 | `AllowActions` | `true` | `false` makes the dashboard read-only: start, suspend, resume, terminate, publish event and the designer are refused. |
 | `Authorization` | local requests only | `Func<HttpContext, bool>` deciding who may use the dashboard, API and hub. See [Security](Security.md). |
+| `ActionAuthorization` | `null` (everyone with access) | `Func<HttpContext, bool>` deciding who may also change things. Others see the dashboard without action buttons. |
+| `AuthorizationPolicy` | `null` | ASP.NET Core authorization policy for the whole dashboard, the same as `RequireAuthorization(policy)` on the mapped group. |
+| `SignOutPath` | `null` (hidden) | Target of the account menu's "Sign out": relative to the dashboard (`"signout"`) or absolute (`"/account/logout"`). |
 | `FrameAncestors` | `null` (no framing) | CSP `frame-ancestors` value for sites allowed to show the dashboard in a frame, e.g. `"'self' https://portal.example.com"`. |
 | `MaxPageSize` | `200` | Largest page the instances endpoint returns. |
 | `ActivityCapacity` | `1000` | In-memory journal only: activity entries kept. |
@@ -27,6 +30,10 @@ app.MapWorkflowCoreDashboard("/workflows");
 | `JournalRetention` | 30 days | Persistent journals delete activity older than this, hourly. `TimeSpan.Zero` keeps everything. The instance index is kept. |
 | `BackfillIndex` | `true` | Persistent journals: on first start, index instances that already exist. |
 | `InstanceListing` | `Auto` | `Journal`, `Provider` or `Auto`. See [Activity journal](Activity-Journal.md#instance-listing). |
+
+## Sign-in
+
+`UseOkta`, `UseEntraId`, `UseAuth0`, `UseKeycloak`, `UseGoogle`, `UseCognito`, `UseOpenIdConnect` and `UseSignIn(configuration)` come from the `WorkflowCore.Dashboard.OpenIdConnect` package. They set `Authorization`, `ActionAuthorization`, `AuthorizationPolicy` and `SignOutPath` for you. Options and per-provider setup: [Identity providers](Identity-Providers.md#options).
 
 ## Entity Framework journal
 

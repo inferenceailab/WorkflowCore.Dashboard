@@ -158,3 +158,32 @@ mat-progress-bar { margin-bottom: 8px; }
 // Outline labels float above the field; without room they are clipped by the dialog's scroll container.
 // "html" outranks Material's identical selector, which is loaded after this file.
 html .mat-mdc-dialog-container .mat-mdc-dialog-title + .mat-mdc-dialog-content { padding-top: 8px; }
+
+/* Account menu (rendered in an overlay, outside the app component). */
+.user-menu .user-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 10px 16px 12px;
+  cursor: default;
+
+  strong { font: var(--mat-sys-title-small); overflow-wrap: anywhere; }
+  .email { font: var(--mat-sys-body-small); color: var(--mat-sys-on-surface-variant); overflow-wrap: anywhere; }
+
+  .role {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    margin-top: 8px;
+    padding: 2px 10px 2px 8px;
+    border-radius: 999px;
+    font: var(--mat-sys-label-medium);
+    color: var(--mat-sys-on-secondary-container);
+    background: var(--mat-sys-secondary-container);
+
+    mat-icon { width: 16px; height: 16px; font-size: 16px; }
+  }
+}

@@ -41,7 +41,7 @@
       @if (!config().allowActions) {
         <div class="meta">
           <mat-icon>lock</mat-icon>
-          <span>Read-only</span>
+          <span>{{ user()?.role === 'viewer' ? 'Read-only: viewer role' : 'Read-only' }}</span>
         </div>
       }
     </footer>
@@ -81,6 +81,33 @@
       >
         <mat-icon>{{ theme() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
       </button>
+
+      @if (user(); as u) {
+        <button class="avatar" [matMenuTriggerFor]="userMenu" [attr.aria-label]="'Account: ' + u.name" [matTooltip]="u.name">
+          {{ initials() }}
+        </button>
+        <mat-menu #userMenu="matMenu" xPosition="before" class="user-menu">
+          <div class="user-card" (click)="$event.stopPropagation()" role="presentation">
+            <strong>{{ u.name }}</strong>
+            @if (u.email && u.email !== u.name) {
+              <span class="email">{{ u.email }}</span>
+            }
+            @if (roleLabel(); as role) {
+              <span class="role" [attr.data-role]="u.role">
+                <mat-icon>{{ u.role === 'admin' ? 'admin_panel_settings' : 'visibility' }}</mat-icon>
+                {{ role }}
+              </span>
+            }
+          </div>
+          @if (signOutHref(); as href) {
+            <mat-divider />
+            <a mat-menu-item [href]="href">
+              <mat-icon>logout</mat-icon>
+              <span>Sign out</span>
+            </a>
+          }
+        </mat-menu>
+      }
     </header>
 
     <main class="page" [class.full-bleed]="fullBleed()">

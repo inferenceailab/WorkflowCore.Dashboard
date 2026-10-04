@@ -8,6 +8,7 @@ An embeddable dashboard for [Workflow Core](https://github.com/danielgerlag/work
 
 - [Getting started](Getting-Started.md): install the packages and open the dashboard.
 - [Security](Security.md): read this before anyone else can reach the dashboard.
+- [Identity providers](Identity-Providers.md): sign-in with Okta, Entra ID, Auth0, Keycloak, Google, Cognito or any OpenID Connect provider.
 
 ## Guides
 

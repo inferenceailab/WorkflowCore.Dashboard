@@ -6,7 +6,10 @@
 The assembly was built without the Angular UI. Install Node.js 22.22+ or 24.15+ and rebuild with `dotnet build -p:BuildDashboardUi=true`, or run `npm ci && npm run build` in `src/WorkflowCore.Dashboard.UI`. Packages from releases always include the UI.
 
 **I get 403 when opening the dashboard from another machine.**
-By default only local requests are allowed. Configure authorization; see [Security](Security.md#exposing-the-dashboard).
+By default only local requests are allowed. Add sign-in with your [identity provider](Identity-Providers.md), or use your app's own; see [Security](Security.md#exposing-the-dashboard).
+
+**After signing in, the page says "You don't have access".**
+Your account has no dashboard role. The page lists the groups your identity provider sent; compare them with `AdminGroups` and `ViewerGroups`. See [Troubleshooting](Identity-Providers.md#troubleshooting).
 
 **I get 403 locally behind a custom host name.**
 The local-only default accepts IP addresses, `localhost` and the machine name in the `Host` header, to block DNS rebinding. Use one of those, or configure `Authorization`.

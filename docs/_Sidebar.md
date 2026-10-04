@@ -3,6 +3,7 @@
 **Start**
 - [Getting started](Getting-Started.md)
 - [Security](Security.md)
+- [Identity providers](Identity-Providers.md)
 
 **Guides**
 - [Configuration](Configuration.md)

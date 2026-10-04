@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- One build per ASP.NET Core version: the OpenID Connect handler must match the host's framework. -->
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <PackageId>WorkflowCore.Dashboard.OpenIdConnect</PackageId>
+    <Description>Sign-in for the Workflow Core dashboard with Okta, Microsoft Entra ID, Auth0, Keycloak, Google, Amazon Cognito or any OpenID Connect provider.</Description>
+    <PackageTags>$(PackageTags);openid-connect;okta;entra-id;auth0;keycloak;cognito;sso</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.*" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="9.0.*" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WorkflowCore.Dashboard\WorkflowCore.Dashboard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WorkflowCore.Dashboard.Tests" />
+  </ItemGroup>
+
+</Project>

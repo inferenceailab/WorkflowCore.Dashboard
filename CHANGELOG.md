@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- `WorkflowCore.Dashboard.OpenIdConnect` package: sign-in with Okta, Microsoft Entra ID, Auth0, Keycloak, Google, Amazon Cognito or any OpenID Connect provider, configured in code or settings (`UseSignIn`), with admin and viewer roles from groups, roles or email addresses.
+- `DashboardOptions.ActionAuthorization`: lets some users view while others act. The UI hides action buttons from users who cannot act.
+- `DashboardOptions.AuthorizationPolicy` and `SignOutPath`.
+- Account menu with the signed-in user, their role and sign-out.
+- A page explaining "access denied" to signed-in users without a role, listing the groups their provider sent.
+- The UI signs in again when the session expires.
+- Keycloak realm and launch profile for trying sign-in with the sample.
+
+### Changed
+
+- `GET /config` reports `allowActions` for the current user, and the signed-in `user` and `signOutPath`.
+
 ## [0.1.0] - 2026-10-04
 
 First release.

@@ -13,6 +13,9 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: Microsoft.Extensions.FileProviders.Embedded
         update-types: [version-update:semver-major]
+      # One reference per target framework; each must stay on its framework's major version.
+      - dependency-name: Microsoft.AspNetCore.Authentication.OpenIdConnect
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /src/WorkflowCore.Dashboard.UI
