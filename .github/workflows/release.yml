@@ -43,10 +43,11 @@ jobs:
       - name: Release notes from CHANGELOG.md
         run: |
           version="${GITHUB_REF_NAME#v}"
-          # The section between "## [version]" and the next "## [" heading.
-          awk -v v="$version" '
-            $0 ~ "^## \[" v "\]" { found = 1; next }
+          # The section between "## [version]" and the next "## [" heading, matched as plain text.
+          awk -v heading="## [$version]" '
+            index($0, heading) == 1 { found = 1; next }
             found && /^## \[/ { exit }
+            found && /^\[[^]]+\]: / { next }
             found { print }
           ' CHANGELOG.md > notes.md
           if [ ! -s notes.md ]; then
