@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/inferenceailab/WorkflowCore.Dashboard/security/advisories/new
+    about: Please report security problems privately, not as an issue.
+  - name: Ask a question
+    url: https://github.com/inferenceailab/WorkflowCore.Dashboard/discussions
+    about: Questions and ideas go to Discussions.
+  - name: Workflow Core itself
+    url: https://github.com/danielgerlag/workflow-core/issues
+    about: Problems with the workflow engine, its persistence providers or the DSL.

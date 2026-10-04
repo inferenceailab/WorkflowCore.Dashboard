@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dotnet-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Packages deliberately reference the lowest supported versions; host apps pick newer ones.
+      - dependency-name: Microsoft.EntityFrameworkCore.*
+        update-types: [version-update:semver-major]
+      - dependency-name: Microsoft.Extensions.FileProviders.Embedded
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: npm
+    directory: /src/WorkflowCore.Dashboard.UI
+    schedule:
+      interval: weekly
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*", "typescript"]
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

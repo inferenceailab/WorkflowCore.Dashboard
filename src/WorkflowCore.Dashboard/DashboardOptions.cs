@@ -46,14 +46,30 @@ public class DashboardOptions
     /// </summary>
     public Func<HttpContext, bool> Authorization { get; set; } = IsLocalRequest;
 
+    /// <summary>
+    /// Origins allowed to show the dashboard in a frame, as a CSP <c>frame-ancestors</c> value such as
+    /// <c>'self' https://portal.example.com</c>. By default no site may frame it, which prevents clickjacking.
+    /// </summary>
+    public string? FrameAncestors { get; set; }
+
+    /// <summary>
+    /// True for requests from this machine, addressed to it by IP address, <c>localhost</c> or its machine name.
+    /// </summary>
     public static bool IsLocalRequest(HttpContext context)
     {
         var remote = context.Connection.RemoteIpAddress;
-        if (remote is null)
-            return true;
-
-        return IPAddress.IsLoopback(remote) || remote.Equals(context.Connection.LocalIpAddress);
+        var fromThisMachine = remote is null || IPAddress.IsLoopback(remote) || remote.Equals(context.Connection.LocalIpAddress);
+        return fromThisMachine && IsLocalHostName(context.Request.Host.Host);
     }
+
+    // A web page can point its own domain at 127.0.0.1 (DNS rebinding) and then reach the dashboard as if it were
+    // local. Its requests still name that domain in the Host header, so only addresses and local names pass.
+    private static bool IsLocalHostName(string host) =>
+        string.IsNullOrEmpty(host)
+        || IPAddress.TryParse(host.Trim('[', ']'), out _)
+        || host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+        || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase)
+        || host.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase);
 }
 
 public enum InstanceListingSource

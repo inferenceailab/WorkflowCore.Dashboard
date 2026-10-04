@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test (EF Core ${{ matrix.ef }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The EF journal is built against EF Core 8 and must work on every supported version.
+        ef: ["8.0.*", "9.0.*", "10.0.*"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/WorkflowCore.Dashboard.UI/package-lock.json
+
+      - name: Build UI
+        working-directory: src/WorkflowCore.Dashboard.UI
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build
+        run: dotnet build -c Release -p:EfVersion=${{ matrix.ef }}
+
+      - name: Test
+        run: dotnet test -c Release --no-build -p:EfVersion=${{ matrix.ef }} --logger "trx;LogFileName=results.trx"
+
+      - name: Pack
+        if: matrix.ef == '9.0.*'
+        run: dotnet pack -c Release --no-build -o artifacts
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: test-results-ef${{ strategy.job-index }}
+          path: tests/**/TestResults/*.trx
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: matrix.ef == '9.0.*'
+        with:
+          name: packages
+          path: artifacts/*
+
+  # A single, stable check name for branch protection, whatever the matrix contains.
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check build results
+        run: |
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "Build or tests failed"
+            exit 1
+          fi

@@ -121,11 +121,19 @@ internal sealed partial class DesignerService
         }
     }
 
+    private const int MaxImportLength = 1_000_000;
+
     public static ImportResponse Import(string text)
     {
+        if (text.Length > MaxImportLength)
+            throw new DesignerException("too-large", "Definitions larger than 1 MB cannot be imported.");
         try
         {
             return new ImportResponse(DslJson.ToJson(DslJson.Parse(text)));
+        }
+        catch (DesignerException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

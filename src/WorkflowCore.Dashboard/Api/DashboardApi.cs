@@ -174,12 +174,26 @@ internal static class DashboardApi
 
     private static async Task<IResult> Act(Func<Task<bool>> action) => Ok(new ActionResponse(await action()));
 
-    /// <summary>Rejects state-changing requests when the dashboard is configured read-only.</summary>
+    /// <summary>Sent by the dashboard UI with every change it requests.</summary>
+    internal const string RequestHeader = "X-Wfc-Dashboard";
+
+    /// <summary>
+    /// Guards state-changing requests: they must carry <see cref="RequestHeader"/>, must not come from another site,
+    /// and are rejected when the dashboard is configured read-only.
+    /// </summary>
     internal static ValueTask<object?> RequireActions(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         var http = context.HttpContext;
-        if (HttpMethods.IsGet(http.Request.Method))
+        if (HttpMethods.IsGet(http.Request.Method) || HttpMethods.IsHead(http.Request.Method))
             return next(context);
+
+        // Cross-site request forgery: browsers only send a custom header to another origin after a CORS preflight,
+        // which the dashboard never approves. Sec-Fetch-Site still catches host apps with a permissive CORS policy.
+        if (!http.Request.Headers.ContainsKey(RequestHeader) || http.Request.Headers["Sec-Fetch-Site"] == "cross-site")
+        {
+            return ValueTask.FromResult<object?>(
+                Error(StatusCodes.Status403Forbidden, "forbidden-origin", "Changes must be made from the dashboard itself."));
+        }
 
         var options = http.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
         return options.AllowActions

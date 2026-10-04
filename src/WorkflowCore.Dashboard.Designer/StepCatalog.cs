@@ -15,7 +15,7 @@ namespace WorkflowCore.Dashboard.Designer;
 /// </summary>
 internal sealed class StepCatalog
 {
-    private const int MaxDataTypes = 500;
+    private const int MaxDataTypes = 2000;
 
     private static readonly (Type Type, string Name, string Category, string Description)[] Primitives =
     [

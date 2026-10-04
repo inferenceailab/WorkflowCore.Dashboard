@@ -1,0 +1,49 @@
+name: Publish wiki
+
+# docs/ is the source of truth; the wiki is a read-only mirror for browsing.
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**", ".github/workflows/wiki.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Mirror docs/ to the wiki
+    if: github.event.repository.has_wiki
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Copy pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
+          find wiki -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp docs/*.md wiki/
+          mkdir -p wiki/images && cp docs/images/*.png wiki/images/
+          # Wiki links have no .md extension: [Designer](Designer.md#x) -> [Designer](Designer#x)
+          sed -i -E 's/\]\(([A-Za-z0-9-]+)\.md(#[^)]*)?\)/](\1\2)/g' wiki/*.md
+          # Links to repository files (../LICENSE, ../src/...) point at GitHub instead.
+          sed -i -E "s#\]\(\.\./([^)]+)\)#](https://github.com/${GITHUB_REPOSITORY}/blob/main/\1)#g" wiki/*.md
+
+      - name: Push
+        working-directory: wiki
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki is up to date"
+            exit 0
+          fi
+          git commit -m "Sync from ${GITHUB_SHA::7}"
+          git push

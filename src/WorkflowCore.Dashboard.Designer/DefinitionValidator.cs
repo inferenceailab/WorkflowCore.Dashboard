@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using WorkflowCore.Interface;
@@ -20,9 +21,12 @@ internal static class DslJson
         Converters = { new StringEnumConverter() },
     };
 
-    /// <summary>Accepts JSON or YAML, the two formats Workflow Core's DSL supports.</summary>
+    /// <summary>
+    /// Accepts JSON or YAML, the two formats Workflow Core's DSL supports. YAML goes through <see cref="SafeYaml"/>
+    /// rather than Workflow Core's YAML deserializer, because the text comes from a browser.
+    /// </summary>
     public static DefinitionSourceV1 Parse(string text) =>
-        text.TrimStart().StartsWith('{') ? Deserializers.Json(text) : Deserializers.Yaml(text);
+        Deserializers.Json(text.TrimStart().StartsWith('{') ? text : SafeYaml.ToJson(text));
 
     public static DefinitionSourceV1 Parse(JsonObject source) => Deserializers.Json(source.ToJsonString());
 
@@ -41,11 +45,17 @@ internal sealed class DefinitionValidator
 {
     private readonly IServiceProvider _services;
     private readonly ITypeResolver _types;
+    private readonly DesignerOptions _options;
+    private readonly Lazy<HashSet<Type>> _allowedSteps;
+    private readonly Lazy<HashSet<Type>> _allowedData;
 
-    public DefinitionValidator(IServiceProvider services, ITypeResolver types)
+    public DefinitionValidator(IServiceProvider services, ITypeResolver types, StepCatalog catalog, IOptions<DesignerOptions> options)
     {
         _services = services;
         _types = types;
+        _options = options.Value;
+        _allowedSteps = new(() => Resolve(catalog.Get().Steps.Select(s => s.Type)));
+        _allowedData = new(() => Resolve(catalog.Get().DataTypes.Select(d => d.Type)));
     }
 
     public ValidationResult Validate(JsonObject json)
@@ -72,8 +82,13 @@ internal sealed class DefinitionValidator
             Error("The workflow needs an ID.");
 
         var dataType = typeof(object);
-        if (!string.IsNullOrWhiteSpace(source.DataType) && !TryResolve(source.DataType, out dataType))
-            Error($"Data type '{source.DataType}' was not found. Use the form 'Namespace.Type, Assembly'.");
+        if (!string.IsNullOrWhiteSpace(source.DataType))
+        {
+            if (!TryResolve(source.DataType, out dataType))
+                Error($"Data type '{source.DataType}' was not found. Use the form 'Namespace.Type, Assembly'.");
+            else if (!_options.AllowAnyType && !_allowedData.Value.Contains(dataType))
+                Error($"Data type {dataType.FullName} is not offered by the designer. Add its assembly to DesignerOptions.StepAssemblies.");
+        }
 
         if (source.Steps.Count == 0)
             Error("Add at least one step.");
@@ -159,6 +174,11 @@ internal sealed class DefinitionValidator
             error($"Step type '{step.StepType}' was not found.", step.Id);
             return;
         }
+        if (!_options.AllowAnyType && !_allowedSteps.Value.Contains(type))
+        {
+            error($"{type.FullName} is not offered by the designer. Add its assembly to DesignerOptions.StepAssemblies.", step.Id);
+            return;
+        }
 
         // Most steps are IStepBody types; a few primitives (EndStep) are WorkflowStep subclasses without inputs.
         var bodyType = typeof(IStepBody).IsAssignableFrom(type) ? type : null;
@@ -230,6 +250,9 @@ internal sealed class DefinitionValidator
         foreach (var key in step.SelectNextStep.Keys)
             yield return key;
     }
+
+    private HashSet<Type> Resolve(IEnumerable<string> names) =>
+        names.Select(n => TryResolve(n, out var t) ? t : null).Where(t => t is not null).Cast<Type>().ToHashSet();
 
     private bool TryResolve(string name, out Type type)
     {
