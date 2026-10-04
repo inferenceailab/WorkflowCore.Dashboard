@@ -18,6 +18,15 @@ updates:
     directory: /src/WorkflowCore.Dashboard.UI
     schedule:
       interval: weekly
+    ignore:
+      # Angular supports one TypeScript minor version at a time (22.x: >=6.0 <6.1); `ng update` moves it.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      # Angular majors come with code migrations that only `ng update` runs.
+      - dependency-name: "@angular/*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "@angular-devkit/*"
+        update-types: [version-update:semver-major]
     groups:
       angular:
         patterns: ["@angular/*", "@angular-devkit/*", "typescript"]
