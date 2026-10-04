@@ -16,6 +16,9 @@
 }
 
 .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.main { min-width: 0; overflow: hidden; }
+
+tr.selected td { background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent); }
 
 .count { font: var(--mat-sys-label-medium); }
 .small { font: var(--mat-sys-body-small); }

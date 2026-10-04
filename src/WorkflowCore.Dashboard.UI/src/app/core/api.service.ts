@@ -3,6 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   ActivityEntry,
+  ActivityTotals,
   ApiError,
   DashboardConfig,
   DefinitionDetail,
@@ -44,6 +45,7 @@ export class ApiService {
     allowActions: false,
     persistenceProvider: '',
     startedAt: new Date().toISOString(),
+    journal: { name: '', persistent: false, retentionDays: null, stepEvents: true },
   });
 
   async loadConfig(): Promise<void> {
@@ -75,14 +77,16 @@ export class ApiService {
     return this.get<InstanceDetail>(`instances/${encodeURIComponent(id)}`);
   }
 
-  activity(instanceId?: string, take = 100) {
-    let params = new HttpParams().set('take', take);
-    if (instanceId) params = params.set('instanceId', instanceId);
+  activity(options: { instanceId?: string; take?: number; before?: string; steps?: boolean } = {}) {
+    let params = new HttpParams().set('take', options.take ?? 100);
+    if (options.instanceId) params = params.set('instanceId', options.instanceId);
+    if (options.before) params = params.set('before', options.before);
+    if (options.steps === false) params = params.set('steps', 'false');
     return this.get<ActivityEntry[]>('activity', params);
   }
 
-  activityTotals() {
-    return this.get<Record<string, number>>('activity/totals');
+  activityTotals(hours: number) {
+    return this.get<ActivityTotals>('activity/totals', new HttpParams().set('hours', hours));
   }
 
   startWorkflow(definitionId: string, version: number | null, data: Json | undefined, reference: string | null) {

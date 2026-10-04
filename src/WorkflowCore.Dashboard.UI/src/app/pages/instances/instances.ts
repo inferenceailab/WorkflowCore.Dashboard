@@ -56,6 +56,8 @@ export class InstancesPage {
 
   protected readonly items = signal<InstanceSummary[]>([]);
   protected readonly hasMore = signal(false);
+  protected readonly total = signal<number | null>(null);
+  protected readonly source = signal<'journal' | 'provider'>('journal');
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly listingUnsupported = signal(false);
@@ -75,7 +77,9 @@ export class InstancesPage {
   protected readonly pageLabel = computed(() => {
     const q = this.query();
     const count = this.items().length;
-    return count ? `${q.skip + 1}–${q.skip + count}` : '0';
+    const total = this.total();
+    const range = count ? `${q.skip + 1}–${q.skip + count}` : '0';
+    return total === null ? range : `${range} of ${total}`;
   });
 
   constructor() {
@@ -152,14 +156,18 @@ export class InstancesPage {
       const createdTo = q.createdTo ? `${q.createdTo}T23:59:59.999Z` : null;
       const createdFrom = q.createdFrom ? `${q.createdFrom}T00:00:00Z` : null;
       const page = await this.api.instances({ ...q, createdFrom, createdTo });
-      // Providers return pages in storage order; newest first reads better within a page.
-      this.items.set([...page.items].sort((a, b) => b.createTime.localeCompare(a.createTime)));
+      // The journal index is newest first already; provider pages come in storage order, so sort within the page.
+      const items = page.source === 'provider' ? [...page.items].sort((a, b) => b.createTime.localeCompare(a.createTime)) : page.items;
+      this.items.set(items);
       this.hasMore.set(page.hasMore);
+      this.total.set(page.total);
+      this.source.set(page.source);
       this.listingUnsupported.set(false);
       this.newEvents.set(0);
     } catch (e) {
       this.items.set([]);
       this.hasMore.set(false);
+      this.total.set(null);
       this.listingUnsupported.set(errorCode(e) === 'listing-not-supported');
       this.error.set(errorMessage(e));
     } finally {

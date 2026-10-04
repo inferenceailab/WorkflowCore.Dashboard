@@ -1,0 +1,109 @@
+<div class="toolbar">
+  @if (overlay()) {
+    <div class="legend" aria-label="Legend">
+      <span class="key" data-tone="complete">Complete</span>
+      <span class="key" data-tone="runnable">Running</span>
+      <span class="key" data-tone="waiting">Waiting</span>
+      <span class="key" data-tone="suspended">Retrying</span>
+      <span class="key" data-tone="failed">Failed</span>
+      <span class="key" data-tone="unvisited">Not run</span>
+    </div>
+  }
+  <span class="spacer"></span>
+  <span class="hint">Drag to pan · Ctrl + scroll to zoom</span>
+  <button mat-icon-button (click)="zoomBy(1 / 1.25)" matTooltip="Zoom out" aria-label="Zoom out">
+    <mat-icon>remove</mat-icon>
+  </button>
+  <span class="zoom">{{ zoomLabel() }}</span>
+  <button mat-icon-button (click)="zoomBy(1.25)" matTooltip="Zoom in" aria-label="Zoom in">
+    <mat-icon>add</mat-icon>
+  </button>
+  <button mat-icon-button (click)="fit()" matTooltip="Fit to view" aria-label="Fit to view">
+    <mat-icon>fit_screen</mat-icon>
+  </button>
+</div>
+
+<div class="viewport" #viewport [style.height.px]="viewportHeight()">
+  <svg
+    role="group"
+    [attr.aria-label]="'Flowchart of ' + definition().id"
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)"
+    (wheel)="onWheel($event)"
+    (click)="onBackgroundClick()"
+  >
+    <defs>
+      <marker id="wfc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" class="arrow" />
+      </marker>
+      <marker id="wfc-arrow-taken" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" class="arrow taken" />
+      </marker>
+      <marker id="wfc-arrow-compensate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" class="arrow compensate" />
+      </marker>
+    </defs>
+
+    <g [attr.transform]="transform()">
+      @for (c of layout().clusters; track c.id) {
+        <rect class="cluster" [attr.x]="c.x" [attr.y]="c.y" [attr.width]="c.width" [attr.height]="c.height" rx="14" />
+      }
+
+      @for (e of layout().edges; track e.id) {
+        <path [attr.class]="edgeClass(e)" [attr.d]="path(e)" [attr.marker-end]="marker(e)" />
+      }
+      @for (e of layout().edges; track e.id) {
+        @if (e.labelPos; as lp) {
+          <g class="edge-label" [attr.transform]="'translate(' + lp.x + ',' + lp.y + ')'">
+            <rect [attr.x]="-(e.label!.length * 3.25 + 6)" y="-9" [attr.width]="e.label!.length * 6.5 + 12" height="18" rx="9" />
+            <text text-anchor="middle" dy="4">{{ e.label }}</text>
+          </g>
+        }
+      }
+
+      @for (n of layout().nodes; track n.id) {
+        @if (n.kind === 'exit') {
+          <circle class="exit" [attr.cx]="n.x + n.width / 2" [attr.cy]="n.y + n.height / 2" r="5" />
+        } @else {
+          <g
+            class="node"
+            [attr.data-tone]="nodeTone(n)"
+            [class.selected]="selectedStepId() === n.stepId"
+            [class.container]="n.step!.children.length > 0"
+            [attr.transform]="'translate(' + n.x + ',' + n.y + ')'"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="title(n)"
+            [attr.aria-pressed]="selectedStepId() === n.stepId"
+            (click)="select(n, $event)"
+            (keydown.enter)="select(n, $event)"
+            (keydown.space)="select(n, $event)"
+          >
+            <title>{{ title(n) }}</title>
+            <rect class="card" [attr.width]="n.width" [attr.height]="n.height" rx="10" />
+            <rect class="strip" x="0" y="8" width="4" [attr.height]="n.height - 16" rx="2" />
+            <text class="icon" x="16" y="37">{{ n.icon }}</text>
+            <text class="name" x="46" y="25">{{ clip(n.step!.name, 22) }}</text>
+            <text class="type" x="46" y="42">{{ clip(n.step!.stepType, 26) }}</text>
+            @if (n.isStart) {
+              <g class="badge start" transform="translate(10,-9)">
+                <rect width="44" height="18" rx="9" />
+                <text x="22" y="13" text-anchor="middle">START</text>
+              </g>
+            }
+            @if (nodeState(n); as state) {
+              @if (state.runs > 1) {
+                <g class="badge runs" [attr.transform]="'translate(' + (n.width - 38) + ',-9)'">
+                  <rect width="32" height="18" rx="9" />
+                  <text x="16" y="13" text-anchor="middle">×{{ state.runs }}</text>
+                </g>
+              }
+            }
+          </g>
+        }
+      }
+    </g>
+  </svg>
+</div>

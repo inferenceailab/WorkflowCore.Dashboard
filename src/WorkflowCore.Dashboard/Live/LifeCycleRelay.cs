@@ -1,7 +1,11 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WorkflowCore.Dashboard.Api;
+using WorkflowCore.Dashboard.Journal;
 using WorkflowCore.Interface;
 using WorkflowCore.Models;
 using WorkflowCore.Models.LifeCycleEvents;
@@ -9,34 +13,39 @@ using WorkflowCore.Models.LifeCycleEvents;
 namespace WorkflowCore.Dashboard.Live;
 
 /// <summary>
-/// Records Workflow Core lifecycle events in the <see cref="ActivityFeed"/> and pushes them to dashboard clients.
+/// Turns Workflow Core lifecycle events into activity entries, pushes them to dashboard clients
+/// and queues them for the journal.
 /// </summary>
 internal sealed class LifeCycleRelay : IHostedService
 {
-    private const int MaxPendingErrors = 1000;
+    private const int MaxUnmatched = 1000;
 
     private readonly IWorkflowHost _host;
     private readonly IWorkflowRegistry _registry;
-    private readonly ActivityFeed _feed;
+    private readonly JournalWriter _writer;
     private readonly IHubContext<DashboardHub> _hub;
+    private readonly DashboardOptions _options;
     private readonly ILogger<LifeCycleRelay> _logger;
 
     // OnStepError carries the exception; the WorkflowError lifecycle event only has its message.
     // The two arrive on different threads in either order, so whichever comes second joins them.
     private readonly object _errorLock = new();
-    private readonly Dictionary<string, string> _pendingErrors = new();
+    private readonly Dictionary<string, string> _detailsWithoutEvent = new();
+    private readonly Dictionary<string, ActivityEntry> _eventsWithoutDetails = new();
 
     public LifeCycleRelay(
         IWorkflowHost host,
         IWorkflowRegistry registry,
-        ActivityFeed feed,
+        JournalWriter writer,
         IHubContext<DashboardHub> hub,
+        IOptions<DashboardOptions> options,
         ILogger<LifeCycleRelay> logger)
     {
         _host = host;
         _registry = registry;
-        _feed = feed;
+        _writer = writer;
         _hub = hub;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -56,33 +65,38 @@ internal sealed class LifeCycleRelay : IHostedService
 
     private void OnStepError(WorkflowInstance workflow, WorkflowStep step, Exception exception)
     {
-        ActivityEntry? updated;
+        var key = ErrorKey(workflow.Id, step.Id);
+        ActivityEntry? completed = null;
         lock (_errorLock)
         {
-            updated = _feed.TryAttachDetails(workflow.Id, step.Id, exception.ToString());
-            if (updated is null)
-            {
-                if (_pendingErrors.Count >= MaxPendingErrors)
-                    _pendingErrors.Clear();
-                _pendingErrors[ErrorKey(workflow.Id, step.Id)] = exception.ToString();
-            }
+            if (_eventsWithoutDetails.Remove(key, out var entry))
+                completed = entry with { Details = exception.ToString() };
+            else
+                Remember(_detailsWithoutEvent, key, exception.ToString());
         }
 
-        // Clients replace entries they already have by sequence number.
-        if (updated is not null)
-            _ = _hub.Clients.All.SendAsync("activity", updated);
+        // Re-sent with the same ID: clients replace the entry, the journal fills in the details.
+        if (completed is not null)
+            Publish(completed);
     }
 
     private void OnLifeCycleEvent(LifeCycleEvent evt)
     {
         try
         {
-            ActivityEntry entry;
-            lock (_errorLock)
+            var entry = ToEntry(evt);
+            if (entry.Type == nameof(WorkflowError) && entry.StepId is { } stepId)
             {
-                entry = _feed.Add(sequence => ToEntry(sequence, evt));
+                var key = ErrorKey(entry.InstanceId, stepId);
+                lock (_errorLock)
+                {
+                    if (_detailsWithoutEvent.Remove(key, out var details))
+                        entry = entry with { Details = details };
+                    else
+                        Remember(_eventsWithoutDetails, key, entry);
+                }
             }
-            _ = _hub.Clients.All.SendAsync("activity", entry);
+            Publish(entry);
         }
         catch (Exception ex)
         {
@@ -90,41 +104,40 @@ internal sealed class LifeCycleRelay : IHostedService
         }
     }
 
-    private ActivityEntry ToEntry(long sequence, LifeCycleEvent evt)
+    private void Publish(ActivityEntry entry)
+    {
+        _ = _hub.Clients.All.SendAsync("activity", entry);
+        if (_options.JournalStepEvents || !entry.Type.StartsWith("Step", StringComparison.Ordinal))
+            _writer.Enqueue(entry);
+    }
+
+    private ActivityEntry ToEntry(LifeCycleEvent evt)
     {
         string? pointerId = null;
         int? stepId = null;
         string? message = null;
-        string? details = null;
 
         switch (evt)
         {
             case StepStarted started:
-                pointerId = started.ExecutionPointerId;
-                stepId = started.StepId;
+                (pointerId, stepId) = (started.ExecutionPointerId, started.StepId);
                 break;
             case StepCompleted completed:
-                pointerId = completed.ExecutionPointerId;
-                stepId = completed.StepId;
+                (pointerId, stepId) = (completed.ExecutionPointerId, completed.StepId);
                 break;
             case WorkflowError error:
-                pointerId = error.ExecutionPointerId;
-                stepId = error.StepId;
-                message = error.Message;
-                var key = ErrorKey(error.WorkflowInstanceId, error.StepId);
-                if (_pendingErrors.Remove(key, out var pending))
-                    details = pending;
+                (pointerId, stepId, message) = (error.ExecutionPointerId, error.StepId, error.Message);
                 break;
         }
 
-        var stepName = stepId is { } id
-            ? StepNames.For(_registry, evt.WorkflowDefinitionId, evt.Version, id)
-            : null;
+        var type = evt.GetType().Name;
+        var time = DateTime.SpecifyKind(evt.EventTimeUtc, DateTimeKind.Utc);
+        var stepName = stepId is { } id ? StepNames.For(_registry, evt.WorkflowDefinitionId, evt.Version, id) : null;
 
         return new ActivityEntry(
-            sequence,
-            evt.GetType().Name,
-            DateTime.SpecifyKind(evt.EventTimeUtc, DateTimeKind.Utc),
+            EntryId(type, evt.WorkflowInstanceId, pointerId, stepId, time),
+            type,
+            time,
             evt.WorkflowInstanceId,
             evt.WorkflowDefinitionId,
             evt.Version,
@@ -133,7 +146,24 @@ internal sealed class LifeCycleRelay : IHostedService
             stepId,
             stepName,
             message,
-            details);
+            null);
+    }
+
+    /// <summary>
+    /// Same event, same ID: with a distributed lifecycle event hub every node receives every event,
+    /// and the journal stores each one once.
+    /// </summary>
+    internal static string EntryId(string type, string instanceId, string? pointerId, int? stepId, DateTime time)
+    {
+        var raw = $"{type}|{instanceId}|{pointerId}|{stepId}|{time.Ticks}";
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)), 0, 16).ToLowerInvariant();
+    }
+
+    private static void Remember<T>(Dictionary<string, T> map, string key, T value)
+    {
+        if (map.Count >= MaxUnmatched)
+            map.Clear();
+        map[key] = value;
     }
 
     private static string ErrorKey(string instanceId, int stepId) => $"{instanceId}:{stepId}";

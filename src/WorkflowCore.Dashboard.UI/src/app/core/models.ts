@@ -18,11 +18,20 @@ export type PointerStatus =
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
+export interface JournalInfo {
+  name: string;
+  /** True when activity history survives restarts. */
+  persistent: boolean;
+  retentionDays: number | null;
+  stepEvents: boolean;
+}
+
 export interface DashboardConfig {
   title: string;
   allowActions: boolean;
   persistenceProvider: string;
   startedAt: string;
+  journal: JournalInfo;
 }
 
 export interface DefinitionSummary {
@@ -113,6 +122,10 @@ export interface Page<T> {
   skip: number;
   take: number;
   hasMore: boolean;
+  /** Number of matches; null when the source cannot count (provider listing). */
+  total: number | null;
+  /** "journal": newest first, from the dashboard's index. "provider": Workflow Core's storage order. */
+  source: 'journal' | 'provider';
 }
 
 export interface InstanceQuery {
@@ -135,7 +148,8 @@ export type ActivityType =
   | 'StepCompleted';
 
 export interface ActivityEntry {
-  sequence: number;
+  /** Stable per event; an entry re-sent with the same ID (e.g. with its stack trace added) replaces the old one. */
+  id: string;
   type: ActivityType;
   time: string;
   instanceId: string;
@@ -147,6 +161,12 @@ export interface ActivityEntry {
   stepName: string | null;
   message: string | null;
   details: string | null;
+}
+
+export interface ActivityTotals {
+  /** Start of the counted window; for the in-memory journal, when the app started. */
+  since: string;
+  counts: Record<string, number>;
 }
 
 export interface ApiError {

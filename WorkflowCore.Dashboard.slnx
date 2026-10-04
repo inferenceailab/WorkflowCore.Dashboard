@@ -3,6 +3,10 @@
     <Project Path="samples/WorkflowCore.Dashboard.Sample/WorkflowCore.Dashboard.Sample.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/WorkflowCore.Dashboard.EntityFramework/WorkflowCore.Dashboard.EntityFramework.csproj" />
     <Project Path="src/WorkflowCore.Dashboard/WorkflowCore.Dashboard.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WorkflowCore.Dashboard.Tests/WorkflowCore.Dashboard.Tests.csproj" />
   </Folder>
 </Solution>

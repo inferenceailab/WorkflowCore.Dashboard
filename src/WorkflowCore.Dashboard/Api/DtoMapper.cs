@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using WorkflowCore.Dashboard.Journal;
 using WorkflowCore.Models;
 
 namespace WorkflowCore.Dashboard.Api;
@@ -75,6 +76,21 @@ internal static class DtoMapper
             wf.ExecutionPointers.Count(p => p.Status == PointerStatus.Failed),
             current);
     }
+
+    /// <summary>For index rows whose instance could not be loaded from the persistence provider.</summary>
+    public static InstanceSummary ToSummary(InstanceIndexEntry row) => new(
+        row.InstanceId,
+        row.DefinitionId,
+        row.Version,
+        null,
+        row.Reference,
+        row.Status,
+        Utc(row.CreateTime),
+        Utc(row.CompleteTime),
+        null,
+        0,
+        0,
+        null);
 
     public static InstanceDetail ToDetail(WorkflowInstance wf, WorkflowDefinition? def) => new(
         ToSummary(wf, def),

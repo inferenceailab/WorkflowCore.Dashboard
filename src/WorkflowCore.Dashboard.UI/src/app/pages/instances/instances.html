@@ -113,6 +113,9 @@
   </div>
 
   <div class="pager compact-fields">
+    @if (source() === 'provider' && items().length) {
+      <span class="muted order-note">Pages follow storage order; each page is sorted newest first.</span>
+    }
     <mat-form-field subscriptSizing="dynamic" class="page-size">
       <mat-label>Per page</mat-label>
       <mat-select [value]="query().take" (valueChange)="setFilter({ take: $event })">

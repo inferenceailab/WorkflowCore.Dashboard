@@ -3,16 +3,19 @@ import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatProgressBar } from '@angular/material/progress-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService, errorMessage } from '../../core/api.service';
 import { DefinitionDetail, StepDto } from '../../core/models';
 import { StartWorkflowDialog } from '../../dialogs/start-workflow-dialog';
 import { JsonView } from '../../shared/json-view';
+import { StepPanel } from '../../shared/step-panel';
+import { WorkflowGraph } from '../../shared/workflow-graph/workflow-graph';
 
 @Component({
   selector: 'wfc-definition-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, MatButton, MatIcon, MatProgressBar, JsonView],
+  imports: [RouterLink, MatButton, MatIcon, MatProgressBar, MatTabsModule, JsonView, StepPanel, WorkflowGraph],
   templateUrl: './definition-detail.html',
   styleUrl: './definition-detail.scss',
 })
@@ -28,6 +31,7 @@ export class DefinitionDetailPage {
   protected readonly def = signal<DefinitionDetail | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  protected readonly selected = signal<number | null>(null);
 
   private readonly stepsById = computed(() => new Map((this.def()?.steps ?? []).map((s) => [s.id, s])));
 
@@ -37,6 +41,7 @@ export class DefinitionDetailPage {
       const version = this.version();
       this.loading.set(true);
       this.error.set(null);
+      this.selected.set(null);
       void this.api
         .definition(id, version)
         .then((d) => this.def.set(d))

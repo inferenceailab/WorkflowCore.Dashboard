@@ -14,12 +14,14 @@ import { upsertActivity } from '../../core/activity';
 import { ApiService, errorMessage } from '../../core/api.service';
 import { durationBetween, formatDuration, relativeTime, statusTone } from '../../core/format';
 import { LiveService } from '../../core/live.service';
-import { ActivityEntry, InstanceDetail, PointerDto } from '../../core/models';
+import { ActivityEntry, DefinitionDetail, InstanceDetail, PointerDto } from '../../core/models';
 import { PublishEventDialog } from '../../dialogs/publish-event-dialog';
 import { ActivityList } from '../../shared/activity-list';
 import { confirm } from '../../shared/confirm-dialog';
 import { JsonView } from '../../shared/json-view';
 import { StatusChip } from '../../shared/status-chip';
+import { StepPanel } from '../../shared/step-panel';
+import { WorkflowGraph } from '../../shared/workflow-graph/workflow-graph';
 
 interface TimelineBar {
   left: number;
@@ -42,6 +44,8 @@ interface TimelineBar {
     StatusChip,
     JsonView,
     ActivityList,
+    StepPanel,
+    WorkflowGraph,
   ],
   templateUrl: './instance-detail.html',
   styleUrl: './instance-detail.scss',
@@ -61,6 +65,9 @@ export class InstanceDetailPage {
   protected readonly error = signal<string | null>(null);
   protected readonly expanded = signal<string | null>(null);
   protected readonly now = signal(Date.now());
+  protected readonly definition = signal<DefinitionDetail | null>(null);
+  protected readonly selectedStep = signal<number | null>(null);
+  protected readonly journal = computed(() => this.api.config().journal);
 
   protected readonly summary = computed(() => this.detail()?.summary ?? null);
   protected readonly pointers = computed(() => this.detail()?.executionPointers ?? []);
@@ -68,6 +75,11 @@ export class InstanceDetailPage {
   protected readonly canResume = computed(() => this.summary()?.status === 'Suspended');
   protected readonly canTerminate = computed(() => ['Runnable', 'Suspended'].includes(this.summary()?.status ?? ''));
   protected readonly errorCount = computed(() => this.activity().filter((e) => e.type === 'WorkflowError').length);
+  protected readonly isRunning = computed(() => this.summary()?.status === 'Runnable');
+  protected readonly selectedPointers = computed(() => {
+    const stepId = this.selectedStep();
+    return stepId === null ? [] : this.pointers().filter((p) => p.stepId === stepId);
+  });
 
   /** Time window the timeline bars are drawn against: creation until completion (or now). */
   private readonly span = computed(() => {
@@ -85,6 +97,7 @@ export class InstanceDetailPage {
     effect(() => {
       const id = this.id();
       this.detail.set(null);
+      this.selectedStep.set(null);
       this.loading.set(true);
       void this.load(id);
     });
@@ -206,18 +219,34 @@ export class InstanceDetailPage {
     }
   }
 
-  private async load(id: string): Promise<void> {
+  /** Activity is only fetched on first load; afterwards live events keep it current. */
+  private async load(id: string, withActivity = true): Promise<void> {
     try {
-      const [detail, activity] = await Promise.all([this.api.instance(id), this.api.activity(id, 500)]);
+      const [detail, activity] = await Promise.all([
+        this.api.instance(id),
+        withActivity ? this.api.activity({ instanceId: id, take: 1000 }) : Promise.resolve(null),
+      ]);
       if (id !== this.id()) return;
       this.detail.set(detail);
-      this.activity.set(activity);
+      if (activity) this.activity.set(activity);
       this.error.set(null);
       this.now.set(Date.now());
+      await this.loadDefinition(detail.summary.definitionId, detail.summary.version);
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async loadDefinition(id: string, version: number): Promise<void> {
+    const current = this.definition();
+    if (current?.id === id && current.version === version) return;
+    try {
+      this.definition.set(await this.api.definition(id, version));
+    } catch {
+      // The definition is no longer registered; the graph tab explains that.
+      this.definition.set(null);
     }
   }
 
@@ -226,7 +255,7 @@ export class InstanceDetailPage {
     if (this.reloadTimer) return;
     this.reloadTimer = setTimeout(() => {
       this.reloadTimer = undefined;
-      void this.load(this.id());
+      void this.load(this.id(), false);
     }, 500);
   }
 }

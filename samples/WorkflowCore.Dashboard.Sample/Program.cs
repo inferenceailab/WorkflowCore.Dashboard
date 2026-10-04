@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using WorkflowCore.Dashboard;
+using WorkflowCore.Dashboard.EntityFramework;
 using WorkflowCore.Dashboard.Sample;
 using WorkflowCore.Dashboard.Sample.Steps;
 
@@ -10,10 +12,13 @@ builder.Services.AddWorkflow(options => options.UseSqlite($"Data Source={databas
 builder.Services.AddWorkflowDSL();
 builder.Services.AddTransient<LogStep>();
 
-builder.Services.AddWorkflowCoreDashboard(options =>
-{
-    options.Title = "Workflow Core Sample";
-});
+builder.Services
+    .AddWorkflowCoreDashboard(options =>
+    {
+        options.Title = "Workflow Core Sample";
+    })
+    // Activity history and the instance index live next to Workflow Core's tables and survive restarts.
+    .UseEntityFrameworkJournal(db => db.UseSqlite($"Data Source={database};"));
 
 builder.Services.AddHostedService<WorkflowStartup>();
 if (builder.Configuration.GetValue("Sample:GenerateTraffic", true))

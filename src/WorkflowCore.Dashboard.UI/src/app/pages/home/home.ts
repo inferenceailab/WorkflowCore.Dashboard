@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButton } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIcon } from '@angular/material/icon';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { RouterLink } from '@angular/router';
@@ -14,6 +15,12 @@ import { ActivityList } from '../../shared/activity-list';
 
 const FEED_LIMIT = 200;
 
+export const WINDOWS = [
+  { hours: 1, label: '1 hour' },
+  { hours: 24, label: '24 hours' },
+  { hours: 24 * 7, label: '7 days' },
+];
+
 interface Tile {
   type: string;
   label: string;
@@ -24,7 +31,7 @@ interface Tile {
 @Component({
   selector: 'wfc-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, MatIcon, MatButton, MatSlideToggle, ActivityList],
+  imports: [DatePipe, RouterLink, MatIcon, MatButton, MatButtonToggleModule, MatSlideToggle, ActivityList],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
@@ -33,7 +40,10 @@ export class HomePage {
   private readonly live = inject(LiveService);
 
   protected readonly config = this.api.config;
+  protected readonly windows = WINDOWS;
+  protected readonly windowHours = signal(24);
   protected readonly totals = signal<Record<string, number>>({});
+  protected readonly totalsSince = signal<string | null>(null);
   protected readonly feed = signal<ActivityEntry[]>([]);
   protected readonly showSteps = signal(false);
   protected readonly running = signal<InstanceSummary[]>([]);
@@ -51,6 +61,7 @@ export class HomePage {
   protected readonly visibleFeed = computed(() =>
     this.showSteps() ? this.feed() : this.feed().filter((e) => !e.type.startsWith('Step')),
   );
+  protected readonly persistent = computed(() => this.config().journal.persistent);
 
   private refreshTimer?: ReturnType<typeof setTimeout>;
 
@@ -72,6 +83,17 @@ export class HomePage {
     return this.totals()[type] ?? 0;
   }
 
+  protected setWindow(hours: number): void {
+    this.windowHours.set(hours);
+    void this.loadTotals();
+  }
+
+  protected setShowSteps(show: boolean): void {
+    this.showSteps.set(show);
+    // The journal filters server-side, so a page of workflow events is not crowded out by step events.
+    void this.loadFeed();
+  }
+
   protected ago(value: string | null): string {
     return relativeTime(value);
   }
@@ -81,15 +103,31 @@ export class HomePage {
   }
 
   private async load(): Promise<void> {
-    const [totals, feed, defs] = await Promise.allSettled([
-      this.api.activityTotals(),
-      this.api.activity(undefined, FEED_LIMIT),
-      this.api.definitions(),
-    ]);
-    if (totals.status === 'fulfilled') this.totals.set(totals.value);
-    if (feed.status === 'fulfilled') this.feed.set(feed.value);
-    if (defs.status === 'fulfilled') this.definitionCount.set(new Set(defs.value.map((d) => d.id)).size);
+    void this.loadTotals();
+    void this.loadFeed();
+    void this.api
+      .definitions()
+      .then((defs) => this.definitionCount.set(new Set(defs.map((d) => d.id)).size))
+      .catch(() => undefined);
     await this.loadRunning();
+  }
+
+  private async loadTotals(): Promise<void> {
+    try {
+      const totals = await this.api.activityTotals(this.windowHours());
+      this.totals.set(totals.counts);
+      this.totalsSince.set(totals.since);
+    } catch {
+      // Tiles keep their last values.
+    }
+  }
+
+  private async loadFeed(): Promise<void> {
+    try {
+      this.feed.set(await this.api.activity({ take: FEED_LIMIT, steps: this.showSteps() }));
+    } catch {
+      // Live events still arrive.
+    }
   }
 
   private async loadRunning(): Promise<void> {

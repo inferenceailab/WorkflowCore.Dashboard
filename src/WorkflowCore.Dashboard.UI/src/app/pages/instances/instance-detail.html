@@ -77,6 +77,35 @@
 
   <section class="panel">
     <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false">
+      <mat-tab label="Graph">
+        @if (definition(); as def) {
+          <div class="graph-layout" [class.with-panel]="selectedStep() !== null">
+            <wfc-workflow-graph
+              [definition]="def"
+              [pointers]="pointers()"
+              [workflowRunning]="isRunning()"
+              [selectedStepId]="selectedStep()"
+              (stepSelected)="selectedStep.set($event)"
+            />
+            @if (selectedStep() !== null) {
+              <wfc-step-panel
+                class="graph-panel"
+                [definition]="def"
+                [stepId]="selectedStep()!"
+                [pointers]="selectedPointers()"
+                [allowActions]="allowActions()"
+                (closed)="selectedStep.set(null)"
+                (publish)="publishFor($event)"
+              />
+            }
+          </div>
+        } @else if (!loading()) {
+          <div class="empty">
+            {{ s.definitionId }} v{{ s.version }} is not registered in this app, so its graph cannot be drawn.
+          </div>
+        }
+      </mat-tab>
+
       <mat-tab label="Execution">
         <div class="table-scroll">
           <table class="grid pointers">
@@ -193,7 +222,11 @@
           }
         </ng-template>
         <p class="muted activity-note">
-          Events recorded since the app started. Older history is not kept by Workflow Core.
+          @if (journal().persistent) {
+            Stored in {{ journal().name }}{{ journal().retentionDays ? ', kept for ' + journal().retentionDays + ' days' : '' }}.
+          } @else {
+            Events since the app started. The journal is in memory; configure a persistent journal to keep history.
+          }
         </p>
         <wfc-activity-list [entries]="activity()" [showInstance]="false" emptyText="No events recorded for this instance." />
       </mat-tab>

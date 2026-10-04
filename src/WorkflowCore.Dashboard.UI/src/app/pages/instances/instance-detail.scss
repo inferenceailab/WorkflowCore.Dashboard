@@ -138,3 +138,20 @@
   .facts-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fact { border-right: 0; }
 }
+
+.graph-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  &.with-panel { grid-template-columns: minmax(0, 1fr) 320px; }
+}
+
+.graph-panel {
+  border-left: 1px solid var(--wfc-border);
+  max-height: 607px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1000px) {
+  .graph-layout.with-panel { grid-template-columns: minmax(0, 1fr); }
+  .graph-panel { border-left: 0; border-top: 1px solid var(--wfc-border); max-height: none; }
+}

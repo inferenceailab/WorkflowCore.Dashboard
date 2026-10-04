@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using WorkflowCore.Dashboard.Live;
+using WorkflowCore.Dashboard.Journal;
 using WorkflowCore.Exceptions;
 using WorkflowCore.Interface;
 using WorkflowCore.Models;
@@ -37,8 +37,19 @@ internal static class DashboardApi
         api.MapPost("/events", PublishEvent);
     }
 
-    private static IResult GetConfig(IOptions<DashboardOptions> options, IPersistenceProvider store, ActivityFeed feed) =>
-        Ok(new DashboardConfig(options.Value.Title, options.Value.AllowActions, store.GetType().Name, feed.StartedAt));
+    private static readonly DateTime StartedAt = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime();
+
+    private static IResult GetConfig(IOptions<DashboardOptions> options, IPersistenceProvider store, IDashboardJournal journal)
+    {
+        var o = options.Value;
+        var retention = journal.IsPersistent && o.JournalRetention > TimeSpan.Zero ? (int?)Math.Ceiling(o.JournalRetention.TotalDays) : null;
+        return Ok(new DashboardConfig(
+            o.Title,
+            o.AllowActions,
+            store.GetType().Name,
+            StartedAt,
+            new JournalInfo(journal.Name, journal.IsPersistent, retention, o.JournalStepEvents)));
+    }
 
     private static IResult GetDefinitions(IWorkflowRegistry registry)
     {
@@ -60,39 +71,25 @@ internal static class DashboardApi
             : Ok(DtoMapper.ToDetail(def));
     }
 
-    private static async Task<IResult> GetInstances(
-        HttpRequest request, IPersistenceProvider store, IWorkflowRegistry registry, IOptions<DashboardOptions> options)
+    private static async Task<IResult> GetInstances(HttpRequest request, InstanceListing listing, IOptions<DashboardOptions> options)
     {
         var q = request.Query;
         if (!TryParseStatus(q["status"], out var status))
             return Error(StatusCodes.Status400BadRequest, "invalid-status", $"Unknown status '{q["status"]}'.");
 
-        var skip = Math.Max(0, ParseInt(q["skip"]) ?? 0);
-        var take = Math.Clamp(ParseInt(q["take"]) ?? 25, 1, options.Value.MaxPageSize);
-        var definitionId = NullIfEmpty(q["definitionId"]);
-        var from = ParseDate(q["createdFrom"]);
-        var to = ParseDate(q["createdTo"]);
+        var query = new InstanceListQuery(
+            status,
+            NullIfEmpty(q["definitionId"]),
+            ParseDate(q["createdFrom"]),
+            ParseDate(q["createdTo"]),
+            Math.Max(0, ParseInt(q["skip"]) ?? 0),
+            Math.Clamp(ParseInt(q["take"]) ?? 25, 1, options.Value.MaxPageSize));
 
-        List<WorkflowInstance> page;
-        try
-        {
-            // Obsolete in Workflow Core, but it is the only provider-agnostic listing API.
-            // One extra row is requested to tell whether a next page exists.
-#pragma warning disable CS0612, CS0618
-            page = (await store.GetWorkflowInstances(status, definitionId, from, to, skip, take + 1)).ToList();
-#pragma warning restore CS0612, CS0618
-        }
-        catch (NotImplementedException)
-        {
-            return Error(StatusCodes.Status501NotImplemented, "listing-not-supported",
-                $"{store.GetType().Name} cannot list workflow instances. Open an instance by ID instead.");
-        }
-
-        var items = page
-            .Take(take)
-            .Select(wf => DtoMapper.ToSummary(wf, registry.GetDefinition(wf.WorkflowDefinitionId, wf.Version)))
-            .ToList();
-        return Ok(new Page<InstanceSummary>(items, skip, take, page.Count > take));
+        var page = await listing.List(query, request.HttpContext.RequestAborted);
+        return page is null
+            ? Error(StatusCodes.Status501NotImplemented, "listing-not-supported",
+                "The persistence provider cannot list workflow instances. Open an instance by ID, or configure a persistent journal.")
+            : Ok(page);
     }
 
     private static async Task<IResult> GetInstance(string id, IPersistenceProvider store, IWorkflowRegistry registry)
@@ -113,13 +110,23 @@ internal static class DashboardApi
             : Ok(DtoMapper.ToDetail(wf, registry.GetDefinition(wf.WorkflowDefinitionId, wf.Version)));
     }
 
-    private static IResult GetActivity(HttpRequest request, ActivityFeed feed)
+    private static async Task<IResult> GetActivity(HttpRequest request, IDashboardJournal journal)
     {
-        var take = Math.Clamp(ParseInt(request.Query["take"]) ?? 100, 1, 1000);
-        return Ok(feed.Get(NullIfEmpty(request.Query["instanceId"]), take));
+        var q = request.Query;
+        var query = new ActivityQuery(
+            NullIfEmpty(q["instanceId"]),
+            ParseDate(q["before"]),
+            Math.Clamp(ParseInt(q["take"]) ?? 100, 1, 1000),
+            !string.Equals(q["steps"], "false", StringComparison.OrdinalIgnoreCase));
+        return Ok(await journal.GetActivityAsync(query, request.HttpContext.RequestAborted));
     }
 
-    private static IResult GetActivityTotals(ActivityFeed feed) => Ok(feed.Totals());
+    /// <summary>Counts by event type over the last <c>hours</c> (default 24).</summary>
+    private static async Task<IResult> GetActivityTotals(HttpRequest request, IDashboardJournal journal)
+    {
+        var hours = Math.Clamp(ParseInt(request.Query["hours"]) ?? 24, 1, 24 * 366);
+        return Ok(await journal.GetTotalsAsync(DateTime.UtcNow.AddHours(-hours), request.HttpContext.RequestAborted));
+    }
 
     private static async Task<IResult> StartWorkflow(HttpRequest request, IWorkflowController controller, IWorkflowRegistry registry)
     {

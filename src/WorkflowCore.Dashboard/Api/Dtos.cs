@@ -3,7 +3,14 @@ using System.Text.Json.Nodes;
 
 namespace WorkflowCore.Dashboard.Api;
 
-public sealed record DashboardConfig(string Title, bool AllowActions, string PersistenceProvider, DateTime StartedAt);
+public sealed record DashboardConfig(
+    string Title,
+    bool AllowActions,
+    string PersistenceProvider,
+    DateTime StartedAt,
+    JournalInfo Journal);
+
+public sealed record JournalInfo(string Name, bool Persistent, int? RetentionDays, bool StepEvents);
 
 public sealed record DefinitionSummary(
     string Id,
@@ -78,7 +85,9 @@ public sealed record PointerDto(
     JsonNode? PersistenceData,
     JsonNode? ContextItem);
 
-public sealed record Page<T>(IReadOnlyList<T> Items, int Skip, int Take, bool HasMore);
+/// <param name="Total">Number of matches, when the source can count them.</param>
+/// <param name="Source">"journal" (newest first, with totals) or "provider" (storage order).</param>
+public sealed record Page<T>(IReadOnlyList<T> Items, int Skip, int Take, bool HasMore, long? Total, string Source);
 
 public sealed record StartWorkflowRequest(string DefinitionId, int? Version, JsonElement? Data, string? Reference);
 

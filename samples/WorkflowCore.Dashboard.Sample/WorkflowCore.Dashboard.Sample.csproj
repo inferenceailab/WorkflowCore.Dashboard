@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WorkflowCore.Dashboard\WorkflowCore.Dashboard.csproj" />
+    <ProjectReference Include="..\..\src\WorkflowCore.Dashboard.EntityFramework\WorkflowCore.Dashboard.EntityFramework.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,26 +5,47 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using WorkflowCore.Dashboard.Api;
+using WorkflowCore.Dashboard.Journal;
 using WorkflowCore.Dashboard.Live;
 using WorkflowCore.Dashboard.Ui;
 
 namespace WorkflowCore.Dashboard;
 
+/// <summary>Returned by <c>AddWorkflowCoreDashboard</c> to configure where the activity journal is stored.</summary>
+public sealed class DashboardBuilder
+{
+    internal DashboardBuilder(IServiceCollection services) => Services = services;
+
+    public IServiceCollection Services { get; }
+
+    /// <summary>Replaces the default in-memory journal.</summary>
+    public DashboardBuilder UseJournal(Func<IServiceProvider, IDashboardJournal> factory)
+    {
+        Services.Replace(ServiceDescriptor.Singleton(factory));
+        return this;
+    }
+}
+
 public static class DashboardExtensions
 {
     /// <summary>
     /// Registers the dashboard services. Call after <c>AddWorkflow()</c>.
+    /// The activity journal is in-memory unless a persistent one is configured on the returned builder.
     /// </summary>
-    public static IServiceCollection AddWorkflowCoreDashboard(this IServiceCollection services, Action<DashboardOptions>? configure = null)
+    public static DashboardBuilder AddWorkflowCoreDashboard(this IServiceCollection services, Action<DashboardOptions>? configure = null)
     {
         var options = services.AddOptions<DashboardOptions>();
         if (configure is not null)
             options.Configure(configure);
 
         services.AddSignalR();
-        services.TryAddSingleton<ActivityFeed>();
+        services.TryAddSingleton<IDashboardJournal, InMemoryJournal>();
+        services.TryAddSingleton<JournalWriter>();
+        services.AddHostedService(sp => sp.GetRequiredService<JournalWriter>());
+        services.AddHostedService<JournalMaintenance>();
         services.AddHostedService<LifeCycleRelay>();
-        return services;
+        services.TryAddTransient<InstanceListing>();
+        return new DashboardBuilder(services);
     }
 
     /// <summary>

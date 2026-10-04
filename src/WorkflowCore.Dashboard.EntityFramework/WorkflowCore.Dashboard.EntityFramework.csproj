@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <PackageId>WorkflowCore.Dashboard.EntityFramework</PackageId>
+    <Description>Persistent activity journal for the Workflow Core dashboard, on any EF Core relational database.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Lowest supported version; the host app's EF Core provider (8, 9 or 10) decides the version in use. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WorkflowCore.Dashboard\WorkflowCore.Dashboard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WorkflowCore.Dashboard.Tests" />
+  </ItemGroup>
+
+</Project>

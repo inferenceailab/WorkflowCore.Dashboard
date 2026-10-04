@@ -2,14 +2,32 @@
   <div>
     <h1>Overview</h1>
     <p class="muted">
-      Lifecycle events since this app started {{ ago(config().startedAt) }}
-      <span class="sep">·</span>
-      {{ config().startedAt | date: 'medium' }}
+      @if (persistent()) {
+        Activity is stored in {{ config().journal.name }}
+        @if (config().journal.retentionDays) {
+          and kept for {{ config().journal.retentionDays }} days
+        }
+      } @else {
+        Activity since this app started {{ ago(config().startedAt) }}. It is kept in memory and lost on restart.
+      }
     </p>
   </div>
+  @if (persistent()) {
+    <mat-button-toggle-group
+      class="window"
+      hideSingleSelectionIndicator
+      [value]="windowHours()"
+      (change)="setWindow($event.value)"
+      aria-label="Time window for totals"
+    >
+      @for (w of windows; track w.hours) {
+        <mat-button-toggle [value]="w.hours">{{ w.label }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+  }
 </div>
 
-<section class="tiles" aria-label="Lifecycle event totals">
+<section class="tiles" [attr.aria-label]="'Lifecycle events since ' + (totalsSince() | date: 'medium')">
   @for (tile of tiles; track tile.type) {
     <div class="tile panel" [class]="'tone-' + tile.tone">
       <div class="tile-label">
@@ -25,7 +43,7 @@
   <section class="panel feed">
     <div class="panel-header">
       <h2>Live activity</h2>
-      <mat-slide-toggle [checked]="showSteps()" (change)="showSteps.set($event.checked)">Step events</mat-slide-toggle>
+      <mat-slide-toggle [checked]="showSteps()" (change)="setShowSteps($event.checked)">Step events</mat-slide-toggle>
     </div>
     <wfc-activity-list
       [entries]="visibleFeed()"

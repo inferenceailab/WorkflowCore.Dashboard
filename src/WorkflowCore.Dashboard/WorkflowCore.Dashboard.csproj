@@ -18,6 +18,10 @@
     <EmbeddedResource Include="wwwroot\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="WorkflowCore.Dashboard.Tests" />
+  </ItemGroup>
+
   <!--
     Builds the Angular UI into wwwroot when it is missing, or always with -p:BuildDashboardUi=true.
     -p:SkipDashboardUi=true builds the API without a UI.

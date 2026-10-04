@@ -26,68 +26,77 @@
   </div>
 
   <div class="layout">
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Steps</h2>
-        <span class="muted count">{{ d.steps.length }}</span>
-      </div>
-      <div class="table-scroll">
-        <table class="grid">
-          <thead>
-            <tr>
-              <th class="num">#</th>
-              <th>Step</th>
-              <th>Type</th>
-              <th>Next</th>
-              <th>On error</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (s of d.steps; track s.id) {
-              <tr>
-                <td class="num muted">{{ s.id }}</td>
-                <td>
-                  <div class="step-name">
-                    @if (isContainer(s)) {
-                      <mat-icon class="container-icon" title="Container step">account_tree</mat-icon>
-                    }
-                    {{ s.name }}
-                  </div>
-                  @if (s.children.length) {
-                    <div class="muted small">Contains: {{ childNames(s) }}</div>
-                  }
-                </td>
-                <td class="mono muted" [title]="s.stepTypeFullName">{{ s.stepType }}</td>
-                <td>
-                  @for (o of s.outcomes; track $index) {
-                    <div class="outcome">
-                      <mat-icon>arrow_forward</mat-icon>
-                      {{ stepName(o.nextStep) }}
-                      @if (o.label) {
-                        <span class="label">{{ o.label }}</span>
+    <section class="panel main">
+      <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false">
+        <mat-tab label="Graph">
+          <wfc-workflow-graph [definition]="d" [selectedStepId]="selected()" (stepSelected)="selected.set($event)" />
+        </mat-tab>
+        <mat-tab [label]="'Steps (' + d.steps.length + ')'">
+          <div class="table-scroll">
+            <table class="grid">
+              <thead>
+                <tr>
+                  <th class="num">#</th>
+                  <th>Step</th>
+                  <th>Type</th>
+                  <th>Next</th>
+                  <th>On error</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of d.steps; track s.id) {
+                  <tr class="clickable" [class.selected]="selected() === s.id" (click)="selected.set(s.id)">
+                    <td class="num muted">{{ s.id }}</td>
+                    <td>
+                      <div class="step-name">
+                        @if (isContainer(s)) {
+                          <mat-icon class="container-icon" title="Container step">account_tree</mat-icon>
+                        }
+                        {{ s.name }}
+                      </div>
+                      @if (s.children.length) {
+                        <div class="muted small">Contains: {{ childNames(s) }}</div>
                       }
-                    </div>
-                  } @empty {
-                    <span class="muted">End</span>
-                  }
-                </td>
-                <td class="small">
-                  {{ s.errorBehavior ?? 'Default' }}
-                  @if (s.retryInterval) {
-                    <span class="muted"> · {{ s.retryInterval }}</span>
-                  }
-                  @if (s.compensationStepId !== null) {
-                    <div class="muted">Compensate: {{ stepName(s.compensationStepId) }}</div>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+                    </td>
+                    <td class="mono muted" [title]="s.stepTypeFullName">{{ s.stepType }}</td>
+                    <td>
+                      @for (o of s.outcomes; track $index) {
+                        <div class="outcome">
+                          <mat-icon>arrow_forward</mat-icon>
+                          {{ stepName(o.nextStep) }}
+                          @if (o.label) {
+                            <span class="label">{{ o.label }}</span>
+                          }
+                        </div>
+                      } @empty {
+                        <span class="muted">End</span>
+                      }
+                    </td>
+                    <td class="small">
+                      {{ s.errorBehavior ?? 'Default' }}
+                      @if (s.retryInterval) {
+                        <span class="muted"> · {{ s.retryInterval }}</span>
+                      }
+                      @if (s.compensationStepId !== null) {
+                        <div class="muted">Compensate: {{ stepName(s.compensationStepId) }}</div>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
     </section>
 
     <aside class="side">
+      <!-- Step 0 is falsy, so compare with null rather than using "as". -->
+      @if (selected() !== null) {
+        <section class="panel">
+          <wfc-step-panel [definition]="d" [stepId]="selected()!" (closed)="selected.set(null)" />
+        </section>
+      }
       <section class="panel">
         <div class="panel-header"><h2>Details</h2></div>
         <dl class="facts">

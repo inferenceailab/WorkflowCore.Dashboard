@@ -11,7 +11,7 @@ import { ActivityEntry } from '../core/models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePipe, RouterLink, MatIcon],
   template: `
-    @for (e of entries(); track e.sequence) {
+    @for (e of entries(); track e.id) {
       <div class="entry" [class]="'tone-' + tone(e)">
         <span class="marker"></span>
         <div class="body">
@@ -31,11 +31,11 @@ import { ActivityEntry } from '../core/models';
             <div class="message">{{ e.message }}</div>
           }
           @if (e.details) {
-            <button class="details-toggle" (click)="toggle(e.sequence)">
-              <mat-icon>{{ expanded().has(e.sequence) ? 'expand_less' : 'expand_more' }}</mat-icon>
+            <button class="details-toggle" (click)="toggle(e.id)">
+              <mat-icon>{{ expanded().has(e.id) ? 'expand_less' : 'expand_more' }}</mat-icon>
               Stack trace
             </button>
-            @if (expanded().has(e.sequence)) {
+            @if (expanded().has(e.id)) {
               <pre class="details">{{ e.details }}</pre>
             }
           }
@@ -105,7 +105,7 @@ export class ActivityList {
   readonly showInstance = input(true);
   readonly emptyText = input('No activity yet.');
 
-  protected readonly expanded = signal(new Set<number>());
+  protected readonly expanded = signal(new Set<string>());
 
   protected tone(e: ActivityEntry): string {
     return statusTone(e.type);
@@ -119,9 +119,9 @@ export class ActivityList {
     return shortId(id);
   }
 
-  protected toggle(sequence: number): void {
+  protected toggle(id: string): void {
     const next = new Set(this.expanded());
-    if (!next.delete(sequence)) next.add(sequence);
+    if (!next.delete(id)) next.add(id);
     this.expanded.set(next);
   }
 }
