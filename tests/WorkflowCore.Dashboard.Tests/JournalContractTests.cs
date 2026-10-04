@@ -104,6 +104,20 @@ public abstract class JournalContractTests
         await Journal.SetMetadataAsync("k", "2");
         Assert.Equal("2", await Journal.GetMetadataAsync("k"));
     }
+
+    [Fact]
+    public async Task Metadata_can_be_listed_by_prefix_and_deleted()
+    {
+        await Journal.SetMetadataAsync("designer:a", "1");
+        await Journal.SetMetadataAsync("designer:b", "2");
+        await Journal.SetMetadataAsync("other", "3");
+
+        Assert.Equal(["designer:a", "designer:b"], (await Journal.ListMetadataAsync("designer:")).Keys.Order());
+
+        await Journal.DeleteMetadataAsync("designer:a");
+        await Journal.DeleteMetadataAsync("missing");
+        Assert.Equal(["designer:b"], (await Journal.ListMetadataAsync("designer:")).Keys);
+    }
 }
 
 public class InMemoryJournalTests : JournalContractTests

@@ -1,0 +1,115 @@
+:host { display: block; position: relative; min-height: 0; }
+
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  outline: none;
+  touch-action: none;
+  background-color: var(--wfc-page);
+  background-image: radial-gradient(color-mix(in srgb, var(--mat-sys-outline) 30%, transparent) 1px, transparent 1px);
+  background-size: 16px 16px;
+  &:focus-visible { box-shadow: inset 0 0 0 2px var(--mat-sys-primary); }
+}
+
+svg { display: block; width: 100%; height: 100%; user-select: none; cursor: grab; }
+svg:active { cursor: grabbing; }
+svg.linking { cursor: crosshair; }
+
+.edge {
+  cursor: pointer;
+  .hit { fill: none; stroke: transparent; stroke-width: 14; }
+  .line { fill: none; stroke: var(--mat-sys-outline); stroke-width: 1.75; }
+  &.conditional .line { stroke-dasharray: 6 4; }
+  &:hover .line { stroke: var(--mat-sys-primary); }
+  &.selected .line { stroke: var(--mat-sys-primary); stroke-width: 2.5; }
+}
+
+.arrow { fill: var(--mat-sys-outline); &.selected { fill: var(--mat-sys-primary); } }
+
+.edge-label {
+  rect { fill: var(--wfc-card); stroke: var(--wfc-border); }
+  text { fill: var(--mat-sys-on-surface-variant); font: 500 11px var(--wfc-mono); }
+}
+
+.preview { fill: none; stroke: var(--mat-sys-primary); stroke-width: 2; stroke-dasharray: 5 4; pointer-events: none; }
+
+.start {
+  rect { fill: var(--mat-sys-primary); }
+  text { fill: var(--mat-sys-on-primary); font: 700 12px system-ui, 'Segoe UI', sans-serif; letter-spacing: 0.04em; }
+}
+
+.port {
+  fill: var(--wfc-card);
+  stroke: var(--mat-sys-primary);
+  stroke-width: 2;
+  cursor: crosshair;
+  &:hover { fill: var(--mat-sys-primary); r: 8; }
+}
+
+.node {
+  --c: var(--mat-sys-primary);
+  cursor: move;
+
+  .card { fill: var(--wfc-card); stroke: var(--wfc-border); }
+  .strip { fill: var(--c); }
+  .icon { fill: var(--c); font-family: 'Material Icons Outlined'; font-size: 22px; }
+  .name { fill: var(--mat-sys-on-surface); font: 600 13px system-ui, 'Segoe UI', sans-serif; }
+  .type { fill: var(--wfc-muted); font: 11px var(--wfc-mono); }
+
+  &.container { --c: var(--mat-sys-tertiary); }
+  &:hover .card { stroke: var(--mat-sys-primary); }
+  &.selected .card { stroke: var(--mat-sys-primary); stroke-width: 2.5; }
+  &.unreachable { opacity: 0.6; .card { stroke-dasharray: 5 4; } }
+
+  .open {
+    cursor: pointer;
+    rect { fill: color-mix(in srgb, var(--mat-sys-tertiary) 12%, var(--wfc-card)); stroke: color-mix(in srgb, var(--mat-sys-tertiary) 40%, transparent); }
+    .icon { font-size: 20px; fill: var(--mat-sys-tertiary); }
+    &:hover rect { fill: color-mix(in srgb, var(--mat-sys-tertiary) 24%, var(--wfc-card)); }
+  }
+  .branches {
+    circle { fill: var(--mat-sys-tertiary); }
+    text { fill: var(--mat-sys-on-tertiary); font: 700 10px system-ui, sans-serif; }
+  }
+
+  .issue { stroke: var(--wfc-card); stroke-width: 2; }
+  &[data-issue='error'] .issue { fill: var(--wfc-failed); }
+  &[data-issue='warning'] .issue { fill: var(--wfc-suspended); }
+  &[data-issue='error'] .card { stroke: var(--wfc-failed); }
+}
+
+.empty-hint {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: var(--wfc-muted);
+  pointer-events: none;
+  mat-icon { font-size: 36px; width: 36px; height: 36px; }
+  p { margin: 8px 0 0; font: var(--mat-sys-body-large); }
+}
+
+.zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 36px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--wfc-border);
+  border-radius: 12px;
+  background: var(--wfc-card);
+  span { min-width: 42px; text-align: center; font: var(--mat-sys-label-medium); color: var(--wfc-muted); }
+}
+
+.help {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 8px;
+  text-align: center;
+  font: var(--mat-sys-label-small);
+  color: var(--wfc-muted);
+  pointer-events: none;
+}

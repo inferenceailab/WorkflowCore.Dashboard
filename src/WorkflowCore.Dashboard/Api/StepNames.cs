@@ -11,7 +11,8 @@ internal static class StepNames
             return step.Name;
         if (!string.IsNullOrWhiteSpace(step.ExternalId))
             return step.ExternalId;
-        return TypeName(step.BodyType);
+        // EndStep and other WorkflowStep subclasses have no body type.
+        return TypeName(step.BodyType ?? step.GetType());
     }
 
     public static string? For(IWorkflowRegistry registry, string definitionId, int version, int stepId)

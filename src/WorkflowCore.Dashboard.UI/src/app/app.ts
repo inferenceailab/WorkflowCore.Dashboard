@@ -6,8 +6,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltip } from '@angular/material/tooltip';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { map } from 'rxjs';
+import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { ApiService } from './core/api.service';
 import { LiveService } from './core/live.service';
 import { PublishEventDialog } from './dialogs/publish-event-dialog';
@@ -37,11 +37,27 @@ export class App {
   // Only used on narrow screens, where the nav is an overlay that starts closed.
   protected readonly navOpen = signal(false);
 
-  protected readonly nav = [
+  protected readonly nav = computed(() => [
     { path: '/', icon: 'space_dashboard', label: 'Overview', exact: true },
     { path: '/definitions', icon: 'account_tree', label: 'Definitions', exact: false },
     { path: '/instances', icon: 'format_list_bulleted', label: 'Instances', exact: false },
-  ];
+    ...(this.api.hasFeature('designer') && this.config().allowActions
+      ? [{ path: '/designer', icon: 'design_services', label: 'Designer', exact: false }]
+      : []),
+  ]);
+
+  /** Pages such as the designer use the whole content area, without the page padding and width limit. */
+  protected readonly fullBleed = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map(() => {
+        let route: ActivatedRouteSnapshot | null = this.router.routerState.snapshot.root;
+        while (route?.firstChild) route = route.firstChild;
+        return route?.data['fullBleed'] === true;
+      }),
+    ),
+    { initialValue: false },
+  );
 
   protected readonly liveLabel = computed(() => {
     switch (this.live.state()) {

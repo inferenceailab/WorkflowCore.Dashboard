@@ -3,6 +3,7 @@
     <Project Path="samples/WorkflowCore.Dashboard.Sample/WorkflowCore.Dashboard.Sample.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/WorkflowCore.Dashboard.Designer/WorkflowCore.Dashboard.Designer.csproj" />
     <Project Path="src/WorkflowCore.Dashboard.EntityFramework/WorkflowCore.Dashboard.EntityFramework.csproj" />
     <Project Path="src/WorkflowCore.Dashboard/WorkflowCore.Dashboard.csproj" />
   </Folder>

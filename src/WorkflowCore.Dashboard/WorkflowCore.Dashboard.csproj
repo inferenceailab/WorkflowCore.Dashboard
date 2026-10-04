@@ -31,8 +31,10 @@
           Condition="'$(SkipDashboardUi)' != 'true' And ('$(BuildDashboardUi)' == 'true' Or !Exists('wwwroot\index.html'))">
     <Exec Command="npm ci" WorkingDirectory="$(UiProjectDir)" Condition="!Exists('$(UiProjectDir)node_modules')" />
     <Exec Command="npm run build" WorkingDirectory="$(UiProjectDir)" />
+    <!-- The build replaces wwwroot with new content-hashed files, so the list gathered before it is stale. -->
     <ItemGroup>
-      <EmbeddedResource Include="wwwroot\**" Exclude="@(EmbeddedResource)" />
+      <EmbeddedResource Remove="wwwroot\**" />
+      <EmbeddedResource Include="wwwroot\**" />
     </ItemGroup>
   </Target>
 

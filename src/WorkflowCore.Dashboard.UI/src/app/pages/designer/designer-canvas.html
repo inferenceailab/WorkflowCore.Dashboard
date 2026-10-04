@@ -1,0 +1,132 @@
+<div
+  class="viewport"
+  #viewport
+  tabindex="0"
+  aria-label="Workflow canvas"
+  (keydown)="onKeyDown($event)"
+  (dragover)="onDragOver($event)"
+  (drop)="onDrop($event)"
+>
+  <svg
+    [class.linking]="drag()?.kind === 'link'"
+    (pointerdown)="onBackgroundDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)"
+    (wheel)="onWheel($event)"
+  >
+    <defs>
+      <marker id="d-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" class="arrow" />
+      </marker>
+      <marker id="d-arrow-selected" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" class="arrow selected" />
+      </marker>
+    </defs>
+
+    <g [attr.transform]="transform()">
+      @for (e of edges(); track e.key) {
+        <g class="edge" [class.selected]="isEdgeSelected(e)" [class.conditional]="e.condition !== null" (pointerdown)="onEdgeDown(e, $event)">
+          <path class="hit" [attr.d]="e.path" />
+          <path class="line" [attr.d]="e.path" [attr.marker-end]="isEdgeSelected(e) ? 'url(#d-arrow-selected)' : 'url(#d-arrow)'" />
+          @if (e.label) {
+            <g class="edge-label" [attr.transform]="'translate(' + e.labelAt.x + ',' + e.labelAt.y + ')'">
+              <rect [attr.x]="-(e.label.length * 3.3 + 8)" y="-10" [attr.width]="e.label.length * 6.6 + 16" height="20" rx="10" />
+              <text text-anchor="middle" dy="4">{{ e.label }}</text>
+            </g>
+          }
+        </g>
+      }
+
+      @if (linkPreview(); as preview) {
+        <path class="preview" [attr.d]="preview" />
+      }
+
+      @if (start(); as s) {
+        <g class="start" [attr.transform]="'translate(' + s.x + ',' + s.y + ')'">
+          <rect [attr.width]="START_WIDTH" [attr.height]="START_HEIGHT" rx="16" />
+          <text [attr.x]="START_WIDTH / 2" y="21" text-anchor="middle">Start</text>
+          <circle
+            class="port"
+            [attr.cx]="START_WIDTH / 2"
+            [attr.cy]="START_HEIGHT"
+            r="6"
+            (pointerdown)="onPortDown(START, { x: s.x + START_WIDTH / 2, y: s.y + START_HEIGHT }, $event)"
+          >
+            <title>Drag to the step this branch starts with</title>
+          </circle>
+        </g>
+      }
+
+      @for (n of nodes(); track n.id) {
+        <g
+          class="node"
+          [attr.data-node]="n.id"
+          [class.selected]="isSelected(n.id)"
+          [class.container]="n.container"
+          [class.unreachable]="n.unreachable"
+          [attr.data-issue]="n.issue"
+          [attr.transform]="'translate(' + n.x + ',' + n.y + ')'"
+          (pointerdown)="onNodeDown(n, $event)"
+          (dblclick)="n.container && state.openBranch(n.id, 0)"
+        >
+          <title>{{ n.title }}{{ n.unreachable ? ' — nothing leads here, so it never runs' : '' }}</title>
+          <rect class="card" [attr.width]="NODE_WIDTH" [attr.height]="NODE_HEIGHT" rx="10" />
+          <rect class="strip" x="0" y="8" width="4" [attr.height]="NODE_HEIGHT - 16" rx="2" />
+          <text class="icon" x="16" y="37">{{ n.icon }}</text>
+          <text class="name" x="46" y="25">{{ clip(n.title, n.container ? 17 : 22) }}</text>
+          <text class="type" x="46" y="42">{{ clip(n.subtitle, n.container ? 22 : 28) }}</text>
+
+          @if (n.container) {
+            <g
+              class="open"
+              [attr.transform]="'translate(' + (NODE_WIDTH - 42) + ',14)'"
+              (pointerdown)="$event.stopPropagation()"
+              (click)="state.openBranch(n.id, 0)"
+            >
+              <title>Open {{ n.branches > 1 ? 'branch 1 of ' + n.branches : 'its steps' }} (double-click)</title>
+              <rect width="32" height="28" rx="8" />
+              <text class="icon" x="5" y="21">subdirectory_arrow_right</text>
+              @if (n.branches > 1) {
+                <g class="branches" transform="translate(22,-8)">
+                  <circle r="8" cx="8" cy="8" />
+                  <text x="8" y="12" text-anchor="middle">{{ n.branches }}</text>
+                </g>
+              }
+            </g>
+          }
+
+          @if (n.issue) {
+            <circle class="issue" [attr.cx]="NODE_WIDTH - 4" cy="4" r="6" />
+          }
+
+          <circle
+            class="port"
+            [attr.cx]="NODE_WIDTH / 2"
+            [attr.cy]="NODE_HEIGHT"
+            r="6"
+            (pointerdown)="onPortDown(n.id, { x: n.x + NODE_WIDTH / 2, y: n.y + NODE_HEIGHT }, $event)"
+          >
+            <title>Drag to the next step</title>
+          </circle>
+        </g>
+      }
+    </g>
+  </svg>
+
+  @if (!nodes().length) {
+    <div class="empty-hint">
+      <mat-icon>touch_app</mat-icon>
+      <p>Drag a step from the toolbox, or click one to add it.</p>
+    </div>
+  }
+
+  <div class="zoom" (pointerdown)="$event.stopPropagation()">
+    <button mat-icon-button (click)="zoomBy(1 / 1.25)" matTooltip="Zoom out" aria-label="Zoom out"><mat-icon>remove</mat-icon></button>
+    <span>{{ zoomLabel() }}</span>
+    <button mat-icon-button (click)="zoomBy(1.25)" matTooltip="Zoom in" aria-label="Zoom in"><mat-icon>add</mat-icon></button>
+    <button mat-icon-button (click)="fit()" matTooltip="Fit to view" aria-label="Fit to view"><mat-icon>fit_screen</mat-icon></button>
+  </div>
+
+  <div class="help">Drag a node's bottom dot onto another step to connect · Scroll to pan · Ctrl + scroll to zoom · Delete removes</div>
+</div>

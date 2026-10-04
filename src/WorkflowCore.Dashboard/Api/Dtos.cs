@@ -8,7 +8,8 @@ public sealed record DashboardConfig(
     bool AllowActions,
     string PersistenceProvider,
     DateTime StartedAt,
-    JournalInfo Journal);
+    JournalInfo Journal,
+    IReadOnlyList<string> Features);
 
 public sealed record JournalInfo(string Name, bool Persistent, int? RetentionDays, bool StepEvents);
 

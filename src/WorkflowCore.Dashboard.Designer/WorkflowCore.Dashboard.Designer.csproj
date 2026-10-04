@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <PackageId>WorkflowCore.Dashboard.Designer</PackageId>
+    <Description>Visual designer for Workflow Core JSON/YAML (DSL) definitions, as an add-on to the Workflow Core dashboard.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="WorkflowCore.DSL" Version="3.21.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WorkflowCore.Dashboard\WorkflowCore.Dashboard.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WorkflowCore.Dashboard.Tests" />
+  </ItemGroup>
+
+</Project>

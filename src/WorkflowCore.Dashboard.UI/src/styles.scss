@@ -156,4 +156,5 @@ dl.facts {
 mat-progress-bar { margin-bottom: 8px; }
 
 // Outline labels float above the field; without room they are clipped by the dialog's scroll container.
-.mat-mdc-dialog-container .mat-mdc-dialog-title + .mat-mdc-dialog-content { padding-top: 8px; }
+// "html" outranks Material's identical selector, which is loaded after this file.
+html .mat-mdc-dialog-container .mat-mdc-dialog-title + .mat-mdc-dialog-content { padding-top: 8px; }

@@ -32,6 +32,8 @@ export interface DashboardConfig {
   persistenceProvider: string;
   startedAt: string;
   journal: JournalInfo;
+  /** Add-ons installed on the server, e.g. "designer". */
+  features: string[];
 }
 
 export interface DefinitionSummary {

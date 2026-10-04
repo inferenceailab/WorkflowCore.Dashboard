@@ -206,6 +206,26 @@ internal sealed class EntityFrameworkJournal : IDashboardJournal
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> ListMetadataAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        await EnsureSchema(cancellationToken);
+        await using var db = CreateContext();
+        var rows = await db.Metadata.AsNoTracking().Where(m => m.Key.StartsWith(prefix)).ToListAsync(cancellationToken);
+        // Some databases compare case-insensitively; keep exact prefix matches only.
+        return rows.Where(m => m.Key.StartsWith(prefix, StringComparison.Ordinal)).ToDictionary(m => m.Key, m => m.Value);
+    }
+
+    public async Task DeleteMetadataAsync(string key, CancellationToken cancellationToken = default)
+    {
+        await EnsureSchema(cancellationToken);
+        await using var db = CreateContext();
+        var row = await db.Metadata.FirstOrDefaultAsync(m => m.Key == key, cancellationToken);
+        if (row is null)
+            return;
+        db.Metadata.Remove(row);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Creates the database and the dashboard tables when missing. <c>EnsureCreated</c> is not enough because it
     /// does nothing in a database that already has tables, such as the one Workflow Core uses.

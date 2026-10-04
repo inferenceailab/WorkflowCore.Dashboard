@@ -139,6 +139,26 @@ public sealed class InMemoryJournal : IDashboardJournal
         return Task.CompletedTask;
     }
 
+    public Task<IReadOnlyDictionary<string, string>> ListMetadataAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            IReadOnlyDictionary<string, string> result = _metadata
+                .Where(m => m.Key.StartsWith(prefix, StringComparison.Ordinal))
+                .ToDictionary(m => m.Key, m => m.Value);
+            return Task.FromResult(result);
+        }
+    }
+
+    public Task DeleteMetadataAsync(string key, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            _metadata.Remove(key);
+        }
+        return Task.CompletedTask;
+    }
+
     // Entries usually arrive in time order, so walking from the newest end is short.
     private LinkedListNode<ActivityEntry> Insert(ActivityEntry entry)
     {

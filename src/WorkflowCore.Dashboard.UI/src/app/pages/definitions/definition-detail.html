@@ -16,6 +16,9 @@
       }
     </div>
     <div class="heading-actions">
+      @if (isDesign() && allowActions()) {
+        <a mat-stroked-button [routerLink]="['/designer', d.id]"><mat-icon>edit</mat-icon> Edit in designer</a>
+      }
       <a mat-stroked-button routerLink="/instances" [queryParams]="{ definitionId: d.id }">
         <mat-icon>format_list_bulleted</mat-icon> Instances
       </a>

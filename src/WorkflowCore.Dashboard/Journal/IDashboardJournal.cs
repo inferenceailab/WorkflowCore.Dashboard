@@ -81,4 +81,9 @@ public interface IDashboardJournal
     Task<string?> GetMetadataAsync(string key, CancellationToken cancellationToken = default);
 
     Task SetMetadataAsync(string key, string value, CancellationToken cancellationToken = default);
+
+    /// <summary>All metadata entries whose key starts with <paramref name="prefix"/>. Used by add-ons to store documents.</summary>
+    Task<IReadOnlyDictionary<string, string>> ListMetadataAsync(string prefix, CancellationToken cancellationToken = default);
+
+    Task DeleteMetadataAsync(string key, CancellationToken cancellationToken = default);
 }

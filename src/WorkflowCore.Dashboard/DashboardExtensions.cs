@@ -11,6 +11,18 @@ using WorkflowCore.Dashboard.Ui;
 
 namespace WorkflowCore.Dashboard;
 
+/// <summary>
+/// An add-on that contributes API endpoints under <c>{prefix}/api</c> and a feature flag the UI can check,
+/// such as the workflow designer.
+/// </summary>
+public interface IDashboardExtension
+{
+    /// <summary>Reported to the UI in the config's <c>features</c> list.</summary>
+    string Feature { get; }
+
+    void MapEndpoints(RouteGroupBuilder api);
+}
+
 /// <summary>Returned by <c>AddWorkflowCoreDashboard</c> to configure where the activity journal is stored.</summary>
 public sealed class DashboardBuilder
 {
@@ -65,6 +77,8 @@ public static class DashboardExtensions
         var api = group.MapGroup("/api");
         api.AddEndpointFilter(DashboardApi.RequireActions);
         DashboardApi.Map(api);
+        foreach (var extension in endpoints.ServiceProvider.GetServices<IDashboardExtension>())
+            extension.MapEndpoints(api);
 
         EmbeddedUi.Map(group, prefix);
         return group;

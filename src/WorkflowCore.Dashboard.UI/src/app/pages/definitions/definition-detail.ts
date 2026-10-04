@@ -7,6 +7,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService, errorMessage } from '../../core/api.service';
 import { DefinitionDetail, StepDto } from '../../core/models';
+import { DesignerApi } from '../designer/designer-api.service';
 import { StartWorkflowDialog } from '../../dialogs/start-workflow-dialog';
 import { JsonView } from '../../shared/json-view';
 import { StepPanel } from '../../shared/step-panel';
@@ -32,10 +33,24 @@ export class DefinitionDetailPage {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly selected = signal<number | null>(null);
+  /** True when this workflow was made in the designer, so it can be edited there. */
+  protected readonly isDesign = signal(false);
 
   private readonly stepsById = computed(() => new Map((this.def()?.steps ?? []).map((s) => [s.id, s])));
 
   constructor() {
+    const designer = inject(DesignerApi);
+    effect(() => {
+      const id = this.id();
+      this.isDesign.set(false);
+      if (this.api.hasFeature('designer')) {
+        void designer
+          .list()
+          .then((designs) => this.isDesign.set(designs.some((d) => d.id === id)))
+          .catch(() => undefined);
+      }
+    });
+
     effect(() => {
       const id = this.id();
       const version = this.version();

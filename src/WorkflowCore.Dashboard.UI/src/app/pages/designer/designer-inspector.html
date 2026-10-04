@@ -1,0 +1,254 @@
+@if (edge(); as e) {
+  <!-- A connection -->
+  <header>
+    <mat-icon class="head-icon">arrow_downward</mat-icon>
+    <div class="head-text">
+      <strong>Connection</strong>
+      <span class="muted">{{ e.fromName }} → {{ e.toName }}</span>
+    </div>
+  </header>
+  <div class="body">
+    <label class="field">
+      <span>Condition</span>
+      <textarea
+        class="expr"
+        rows="2"
+        spellcheck="false"
+        placeholder="Leave empty to always follow"
+        [value]="e.condition"
+        (input)="setCondition(value($event))"
+      ></textarea>
+      <small>
+        Follow this connection when the condition is true. Uses <code>data</code>, and <code>outcome</code> after a Decide step.
+        All matching connections are followed.
+      </small>
+    </label>
+    <button mat-stroked-button class="danger" (click)="state.disconnect(e.from, e.to)">
+      <mat-icon>link_off</mat-icon> Remove connection
+    </button>
+  </div>
+} @else if (step(); as s) {
+  <!-- A step -->
+  <header>
+    <mat-icon class="head-icon" [class.container]="type()?.isContainer">{{ icon() }}</mat-icon>
+    <div class="head-text">
+      <strong>{{ type()?.name ?? 'Unknown step type' }}</strong>
+      <span class="muted mono">{{ s.StepType }}</span>
+    </div>
+    <button mat-icon-button matTooltip="Delete step (Del)" aria-label="Delete step" (click)="state.removeStep(s.Id)">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </header>
+
+  <div class="body">
+    @if (type()?.description; as description) {
+      <p class="description">{{ description }}</p>
+    }
+    @for (issue of stepIssues(); track $index) {
+      <div class="issue" [attr.data-severity]="issue.severity">
+        <mat-icon>{{ issue.severity === 'error' ? 'error' : 'warning' }}</mat-icon>
+        <span>{{ issue.message }}</span>
+      </div>
+    }
+
+    <label class="field">
+      <span>Name</span>
+      <input [value]="s.Name ?? ''" placeholder="Shown on the canvas and in instances" (input)="setName(value($event))" />
+    </label>
+    <label class="field">
+      <span>ID</span>
+      <input
+        class="mono"
+        [value]="idDraft()"
+        (input)="idDraft.set(value($event)); idError.set(null)"
+        (keydown.enter)="commitId()"
+        (blur)="commitId()"
+      />
+      @if (idError(); as error) {
+        <small class="error-text">{{ error }}</small>
+      } @else {
+        <small>Unique within the workflow. Connections refer to it.</small>
+      }
+    </label>
+
+    @if (inputs().length) {
+      <h4>Inputs</h4>
+      @for (input of inputs(); track input.key) {
+        <label class="field">
+          <span>
+            {{ input.name }} <em>{{ input.type }}</em>
+            @if (!input.known) {
+              <button class="link" type="button" (click)="removeInput(input.name)">remove</button>
+            }
+          </span>
+          @if (input.complex) {
+            <code class="readonly">{{ input.value }}</code>
+          } @else {
+            <textarea
+              class="expr"
+              rows="1"
+              spellcheck="false"
+              [placeholder]="placeholder(input.kind)"
+              [value]="input.value"
+              (input)="setInput(input.name, value($event))"
+            ></textarea>
+          }
+        </label>
+      }
+      <small class="hint">Expressions can use <code>data</code> and <code>context</code> (e.g. <code>context.Item</code> in a For each). Text needs quotes.</small>
+    }
+
+    <h4>
+      Outputs
+      <button mat-icon-button class="small" matTooltip="Add output" aria-label="Add output" (click)="addOutput()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </h4>
+    @for (output of outputs(); track output.key) {
+      <div class="output">
+        <input
+          class="mono"
+          list="wfc-data-properties"
+          [value]="output.property"
+          aria-label="Data property"
+          (change)="setOutput($index, value($event), null)"
+        />
+        <mat-icon class="arrow">arrow_back</mat-icon>
+        <input class="mono" [value]="output.expression" aria-label="Expression" (input)="setOutput($index, null, value($event))" />
+        <button mat-icon-button class="small" aria-label="Remove output" (click)="removeOutput(output.property)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    }
+    @if (suggestedOutputs().length) {
+      <div class="chips">
+        @for (o of suggestedOutputs(); track o.name) {
+          <button class="chip" type="button" (click)="addOutput(o)" [matTooltip]="'Store step.' + o.name + ' in the workflow data'">
+            + {{ o.name }}
+          </button>
+        }
+      </div>
+    }
+    @if (!outputs().length && !suggestedOutputs().length) {
+      <small class="hint">Copies step values into the workflow data, e.g. <code>Total ← step.Result</code>.</small>
+    }
+
+    @if (s.Do; as branches) {
+      <h4>
+        Branches
+        @if (type()?.multipleBranches) {
+          <button mat-icon-button class="small" matTooltip="Add branch" aria-label="Add branch" (click)="state.addBranch(s.Id)">
+            <mat-icon>add</mat-icon>
+          </button>
+        }
+      </h4>
+      @for (branch of branches; track $index) {
+        <div class="branch">
+          <span>Branch {{ $index + 1 }} <em>{{ branchSize($index) }} {{ branchSize($index) === 1 ? 'step' : 'steps' }}</em></span>
+          <button mat-stroked-button class="open-branch" (click)="state.openBranch(s.Id, $index)">
+            Open <mat-icon iconPositionEnd>chevron_right</mat-icon>
+          </button>
+          @if (branches.length > 1) {
+            <button mat-icon-button class="small" aria-label="Remove branch" matTooltip="Remove branch and its steps" (click)="state.removeBranch(s.Id, $index)">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+      }
+    }
+
+    <details>
+      <summary>Error handling and cancellation</summary>
+      <label class="field">
+        <span>On error</span>
+        <select (change)="setErrorBehavior(value($event))">
+          <option value="" [selected]="!s.ErrorBehavior">Workflow default</option>
+          @for (b of behaviors; track b) {
+            <option [value]="b" [selected]="s.ErrorBehavior === b">{{ b }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">
+        <span>Retry interval</span>
+        <input class="mono" placeholder="00:00:30" [value]="s.RetryInterval ?? ''" (input)="setRetryInterval(value($event))" />
+      </label>
+      <label class="field">
+        <span>Cancel when</span>
+        <input class="mono" placeholder="data.Cancelled" [value]="s.CancelCondition ?? ''" (input)="setCancelCondition(value($event))" />
+      </label>
+      <label class="check">
+        <input type="checkbox" [checked]="!!s.ProceedOnCancel" (change)="setProceedOnCancel(checked($event))" />
+        Continue to the next step after cancelling
+      </label>
+    </details>
+  </div>
+} @else {
+  <!-- The workflow itself -->
+  <header>
+    <mat-icon class="head-icon">tune</mat-icon>
+    <div class="head-text">
+      <strong>Workflow settings</strong>
+      <span class="muted mono">{{ state.def().Id }}</span>
+    </div>
+  </header>
+  <div class="body">
+    <label class="field">
+      <span>Description</span>
+      <textarea rows="2" [value]="state.def().Description ?? ''" (input)="setDescription(value($event))"></textarea>
+    </label>
+    <label class="field">
+      <span>Data type</span>
+      <input
+        class="mono"
+        list="wfc-data-types"
+        placeholder="MyApp.OrderData, MyApp"
+        [value]="state.def().DataType ?? ''"
+        (change)="setDataType(value($event))"
+      />
+      <small>The class that holds this workflow's data, as <code>Namespace.Type, Assembly</code>.</small>
+    </label>
+    @if (dataProperties().length) {
+      <div class="props">
+        @for (p of dataProperties(); track p.name) {
+          <code>data.{{ p.name }}</code> <em>{{ p.type }}</em><br />
+        }
+      </div>
+    }
+    <label class="field">
+      <span>Default error behavior</span>
+      <select (change)="setDefaultErrorBehavior(value($event))">
+        @for (b of behaviors; track b) {
+          <option [value]="b" [selected]="(state.def().DefaultErrorBehavior ?? 'Retry') === b">{{ b }}</option>
+        }
+      </select>
+    </label>
+    <label class="field">
+      <span>Default retry interval</span>
+      <input class="mono" placeholder="00:01:00" [value]="state.def().DefaultErrorRetryInterval ?? ''" (input)="setDefaultRetryInterval(value($event))" />
+    </label>
+
+    <h4>Published versions</h4>
+    @for (v of state.versions(); track v.version) {
+      <a class="version" [routerLink]="['/definitions', state.id(), v.version]">
+        <strong>v{{ v.version }}</strong>
+        <span class="muted">{{ v.publishedAt | date: 'MMM d, HH:mm' }}</span>
+        <mat-icon>chevron_right</mat-icon>
+      </a>
+    } @empty {
+      <small class="hint">Not published yet. Publishing registers the workflow so it can be started.</small>
+    }
+
+    <p class="hint tip">Select a step or connection to edit it.</p>
+  </div>
+}
+
+<datalist id="wfc-data-types">
+  @for (d of state.catalog().dataTypes; track d.type) {
+    <option [value]="d.type">{{ d.name }}</option>
+  }
+</datalist>
+<datalist id="wfc-data-properties">
+  @for (p of dataProperties(); track p.name) {
+    <option [value]="p.name">{{ p.type }}</option>
+  }
+</datalist>

@@ -46,7 +46,12 @@ export class ApiService {
     persistenceProvider: '',
     startedAt: new Date().toISOString(),
     journal: { name: '', persistent: false, retentionDays: null, stepEvents: true },
+    features: [],
   });
+
+  hasFeature(name: string): boolean {
+    return this.config().features.includes(name);
+  }
 
   async loadConfig(): Promise<void> {
     try {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WorkflowCore.Dashboard;
+using WorkflowCore.Dashboard.Designer;
 using WorkflowCore.Dashboard.EntityFramework;
 using WorkflowCore.Dashboard.Sample;
 using WorkflowCore.Dashboard.Sample.Steps;
@@ -18,7 +19,9 @@ builder.Services
         options.Title = "Workflow Core Sample";
     })
     // Activity history and the instance index live next to Workflow Core's tables and survive restarts.
-    .UseEntityFrameworkJournal(db => db.UseSqlite($"Data Source={database};"));
+    .UseEntityFrameworkJournal(db => db.UseSqlite($"Data Source={database};"))
+    // Visual editor for JSON/YAML workflows; published designs are stored in the journal database.
+    .AddDesigner();
 
 builder.Services.AddHostedService<WorkflowStartup>();
 if (builder.Configuration.GetValue("Sample:GenerateTraffic", true))

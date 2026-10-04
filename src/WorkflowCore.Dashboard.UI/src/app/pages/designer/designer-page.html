@@ -1,0 +1,102 @@
+<div class="designer">
+  <header class="bar">
+    <a mat-icon-button routerLink="/designer" matTooltip="All designs" aria-label="Back to designs">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div class="title">
+      <h1>{{ id() }}</h1>
+      <span class="status" [attr.data-tone]="status().tone">{{ status().text }}</span>
+    </div>
+
+    <span class="spacer"></span>
+
+    <button mat-icon-button (click)="state.undo()" [disabled]="!state.canUndo()" matTooltip="Undo (Ctrl+Z)" aria-label="Undo">
+      <mat-icon>undo</mat-icon>
+    </button>
+    <button mat-icon-button (click)="state.redo()" [disabled]="!state.canRedo()" matTooltip="Redo (Ctrl+Y)" aria-label="Redo">
+      <mat-icon>redo</mat-icon>
+    </button>
+    <button mat-icon-button (click)="state.autoArrange()" [disabled]="!state.steps().length" matTooltip="Arrange steps" aria-label="Arrange steps">
+      <mat-icon>auto_fix_high</mat-icon>
+    </button>
+    <button mat-icon-button [matMenuTriggerFor]="more" matTooltip="More" aria-label="More actions">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #more="matMenu">
+      <button mat-menu-item (click)="export('json')"><mat-icon>data_object</mat-icon> Export JSON</button>
+      <button mat-menu-item (click)="export('yaml')"><mat-icon>description</mat-icon> Export YAML</button>
+      @if (state.hasDraft()) {
+        <button mat-menu-item (click)="discardDraft()"><mat-icon>delete_sweep</mat-icon> Discard draft</button>
+      }
+    </mat-menu>
+
+    <span class="divider"></span>
+    <button mat-stroked-button (click)="validate()" [disabled]="busy()">
+      <mat-icon>rule</mat-icon> <span class="hide-md">Validate</span>
+    </button>
+    <button mat-stroked-button (click)="saveDraft()" [disabled]="busy() || !state.dirty()">
+      <mat-icon>save</mat-icon> <span class="hide-md">Save draft</span>
+    </button>
+    <button mat-flat-button (click)="publish()" [disabled]="busy() || !state.def().Steps.length">
+      <mat-icon>rocket_launch</mat-icon> Publish
+    </button>
+  </header>
+  @if (busy() || loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (loadError(); as error) {
+    <div class="error-banner load-error"><mat-icon>error</mat-icon><span>{{ error }}</span></div>
+  } @else if (!loading()) {
+    <div class="work">
+      <wfc-designer-toolbox class="toolbox" (add)="addStep($event)" />
+
+      <div class="center">
+        <nav class="crumbs" aria-label="Scope">
+          @for (crumb of state.breadcrumb(); track $index; let last = $last) {
+            @if (last) {
+              <span class="current">{{ crumb.label }}</span>
+            } @else {
+              <button class="crumb" (click)="state.goTo(crumb.path)">{{ crumb.label }}</button>
+              <mat-icon>chevron_right</mat-icon>
+            }
+          }
+          @if (state.path().length) {
+            <span class="scope-note">Editing a branch: its steps run inside the container.</span>
+          }
+        </nav>
+
+        <wfc-designer-canvas class="canvas" />
+
+        @if (state.issues().length) {
+          <section class="issues" [class.closed]="!issuesOpen()">
+            <button class="issues-head" (click)="issuesOpen.set(!issuesOpen())">
+              <mat-icon>{{ errors() ? 'error' : 'warning' }}</mat-icon>
+              <strong>{{ errors() }} {{ errors() === 1 ? 'error' : 'errors' }}, {{ warnings() }} {{ warnings() === 1 ? 'warning' : 'warnings' }}</strong>
+              @if (state.issuesStale()) {
+                <span class="stale">Changed since checked. Validate again.</span>
+              }
+              <span class="spacer"></span>
+              <mat-icon>{{ issuesOpen() ? 'expand_more' : 'expand_less' }}</mat-icon>
+            </button>
+            @if (issuesOpen()) {
+              <ul>
+                @for (issue of state.issues(); track $index) {
+                  <li [attr.data-severity]="issue.severity">
+                    <mat-icon>{{ issue.severity === 'error' ? 'error' : 'warning' }}</mat-icon>
+                    <span>{{ issue.message }}</span>
+                    @if (issue.stepId) {
+                      <button class="goto mono" (click)="reveal(issue)">{{ issue.stepId }}</button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        }
+      </div>
+
+      <wfc-designer-inspector class="inspector" />
+    </div>
+  }
+</div>

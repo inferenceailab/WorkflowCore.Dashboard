@@ -151,6 +151,12 @@ nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
   width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
+
+  &.full-bleed {
+    max-width: none;
+    padding: 0;
+    height: calc(100vh - 65px);
+  }
 }
 
 @media (max-width: 900px) {

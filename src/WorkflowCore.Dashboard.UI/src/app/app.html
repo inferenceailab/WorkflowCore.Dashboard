@@ -17,7 +17,7 @@
 
     <nav>
       <div class="nav-section">Workflows</div>
-      @for (item of nav; track item.path) {
+      @for (item of nav(); track item.path) {
         <a
           class="nav-item"
           [routerLink]="item.path"
@@ -83,7 +83,7 @@
       </button>
     </header>
 
-    <main class="page">
+    <main class="page" [class.full-bleed]="fullBleed()">
       <router-outlet />
     </main>
   </mat-sidenav-content>

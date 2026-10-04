@@ -39,7 +39,8 @@ internal static class DashboardApi
 
     private static readonly DateTime StartedAt = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
-    private static IResult GetConfig(IOptions<DashboardOptions> options, IPersistenceProvider store, IDashboardJournal journal)
+    private static IResult GetConfig(
+        IOptions<DashboardOptions> options, IPersistenceProvider store, IDashboardJournal journal, IEnumerable<IDashboardExtension> extensions)
     {
         var o = options.Value;
         var retention = journal.IsPersistent && o.JournalRetention > TimeSpan.Zero ? (int?)Math.Ceiling(o.JournalRetention.TotalDays) : null;
@@ -48,7 +49,8 @@ internal static class DashboardApi
             o.AllowActions,
             store.GetType().Name,
             StartedAt,
-            new JournalInfo(journal.Name, journal.IsPersistent, retention, o.JournalStepEvents)));
+            new JournalInfo(journal.Name, journal.IsPersistent, retention, o.JournalStepEvents),
+            extensions.Select(e => e.Feature).ToList()));
     }
 
     private static IResult GetDefinitions(IWorkflowRegistry registry)

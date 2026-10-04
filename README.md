@@ -7,6 +7,7 @@ An embeddable monitoring dashboard for [Workflow Core](https://github.com/daniel
 - **Instances**: newest first with totals; filter by status, definition and date; open any instance by ID
 - **Instance detail**: flowchart with executed steps and taken paths highlighted, step timeline, workflow data, per-step payloads, error stack traces
 - **Activity history**: stored in your database when you configure a persistent journal
+- **Designer**: build and edit JSON/YAML workflows visually, then publish them as new versions (optional add-on)
 - **Actions**: start, suspend, resume, terminate, publish events (can be turned off)
 
 The UI is Angular 22 + Angular Material. It is compiled into the `WorkflowCore.Dashboard` assembly, so the host app serves no static files of its own.
@@ -17,7 +18,7 @@ The UI is Angular 22 + Angular Material. It is compiled into the `WorkflowCore.D
 dotnet run --project samples/WorkflowCore.Dashboard.Sample
 ```
 
-Open http://localhost:5290/workflows. The sample uses SQLite for both Workflow Core and the dashboard journal. It registers three C# workflows plus one JSON and one YAML definition, and starts new workflows every few seconds. Set `Sample:GenerateTraffic` to `false` in `appsettings.json` to turn that off.
+Open http://localhost:5290/workflows. The sample uses SQLite for both Workflow Core and the dashboard journal, and has the designer enabled. It registers three C# workflows plus one JSON and one YAML definition, and starts new workflows every few seconds. Set `Sample:GenerateTraffic` to `false` in `appsettings.json` to turn that off.
 
 The first build runs `npm ci` and `npm run build` for the UI, which needs Node.js 22.22+ or 24.15+ (Angular 22 requirement).
 
@@ -55,6 +56,25 @@ builder.Services.AddWorkflowCoreDashboard()
 | `JournalStepEvents` | `true` | Store step started/completed events. Turn off to keep the journal small; they are still shown live. |
 | `BackfillIndex` | `true` | Index existing instances on first start. |
 | `InstanceListing` | `Auto` | `Journal`: newest first with totals. `Provider`: Workflow Core's own listing. `Auto`: the journal when it is persistent. |
+
+### Visual designer (optional)
+
+Add the `WorkflowCore.Dashboard.Designer` package to build JSON/YAML workflows in the browser:
+
+```csharp
+builder.Services.AddWorkflowCoreDashboard()
+    .UseEntityFrameworkJournal(db => db.UseSqlServer(connectionString))   // keeps designs across restarts
+    .AddDesigner();
+```
+
+- **Toolbox**: Workflow Core's primitives (If, While, For each, Parallel, Decide, Delay, Wait for event, …) plus every step class in your app. Steps are found by reflection over assemblies that reference Workflow Core; add more with `options.StepAssemblies.Add(...)`.
+- **Canvas**: drag steps in, then drag a step's bottom dot onto the next step to connect them. A second connection from the same step is conditional. Container steps (If, For each, Parallel, …) open their branches as separate canvases.
+- **Inspector**: step inputs and outputs as Workflow Core expressions (`data.X`, `context.Item`, `step.Result`), error handling, connection conditions, workflow data type.
+- **Validate**: structural checks, then a dry run of Workflow Core's own DSL loader. Every faulty step is flagged on the canvas.
+- **Publish**: registers the next free version immediately, so it can be started at once. It is stored in the journal, and every node registers it on startup or within 30 seconds.
+- **Import/export**: paste or upload Workflow Core JSON or YAML; export either format. Exports are plain Workflow Core definitions that `IDefinitionLoader` loads unchanged.
+
+The designer edits definitions in Workflow Core's own DSL format, so C# workflows stay view-only. It needs `AllowActions`. Without a persistent journal, designs live in memory and are lost on restart.
 
 ### Security
 
@@ -113,11 +133,13 @@ dotnet test -p:EfVersion=10.0.*
 ```
 src/WorkflowCore.Dashboard/                 ASP.NET Core library: API, SignalR hub, in-memory journal, embedded UI host
 src/WorkflowCore.Dashboard.EntityFramework/ Persistent journal on any EF Core relational database
+src/WorkflowCore.Dashboard.Designer/        Visual designer API for JSON/YAML definitions
 src/WorkflowCore.Dashboard.UI/              Angular app
 samples/WorkflowCore.Dashboard.Sample/
 tests/WorkflowCore.Dashboard.Tests/
 ```
 
-## Roadmap
+## Not supported yet
 
-- **Phase 3**: visual designer for JSON/YAML definitions. C# workflows stay view-only.
+- Saga steps and compensation chains (`Saga`, `CompensateWith`) are kept when you import and export, but cannot be edited on the canvas.
+- Inputs whose value is an object (rather than an expression) are kept and shown read-only.
