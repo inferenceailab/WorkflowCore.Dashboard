@@ -202,7 +202,13 @@ public sealed class OpenIdConnectSignInTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _host = await new HostBuilder()
+        _host = await StartHost(endSessionEndpoint: "http://idp.test/logout");
+        _client = _host.GetTestClient();
+    }
+
+    /// <param name="endSessionEndpoint">The provider's sign-out endpoint; <c>null</c> for providers without one, such as Google.</param>
+    private static Task<IHost> StartHost(string? endSessionEndpoint) =>
+        new HostBuilder()
             .ConfigureWebHost(web => web
                 .UseTestServer()
                 .ConfigureServices(services =>
@@ -221,7 +227,7 @@ public sealed class OpenIdConnectSignInTests : IAsyncLifetime
                         {
                             Issuer = "http://idp.test",
                             AuthorizationEndpoint = "http://idp.test/authorize",
-                            EndSessionEndpoint = "http://idp.test/logout",
+                            EndSessionEndpoint = endSessionEndpoint,
                         };
                     });
                 })
@@ -246,8 +252,6 @@ public sealed class OpenIdConnectSignInTests : IAsyncLifetime
                     });
                 }))
             .StartAsync();
-        _client = _host.GetTestClient();
-    }
 
     public async Task DisposeAsync()
     {
@@ -267,7 +271,7 @@ public sealed class OpenIdConnectSignInTests : IAsyncLifetime
 
     private async Task<HttpResponseMessage> Send(HttpMethod method, string path, string? cookie, bool html = false)
     {
-        var request = new HttpRequestMessage(method, path);
+        using var request = new HttpRequestMessage(method, path);
         if (cookie is not null)
             request.Headers.Add("Cookie", cookie);
         if (html)
@@ -353,9 +357,26 @@ public sealed class OpenIdConnectSignInTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Without_a_provider_sign_out_endpoint_only_the_dashboard_session_ends()
+    {
+        using var host = await StartHost(endSessionEndpoint: null);
+        var client = host.GetTestClient();
+        var signIn = await client.GetAsync("/test-signin?role=admin");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/workflows/signout");
+        request.Headers.Add("Cookie", signIn.Headers.GetValues("Set-Cookie").Single().Split(';')[0]);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/workflows/signed-out", response.Headers.Location!.ToString());
+        Assert.Contains(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith(".WorkflowCoreDashboard=;"));
+        await host.StopAsync();
+    }
+
+    [Fact]
     public async Task Other_websites_cannot_sign_people_out()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/workflows/signout");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/workflows/signout");
         request.Headers.Add("Cookie", await SessionCookie(DashboardClaims.Admin));
         request.Headers.Add("Sec-Fetch-Site", "cross-site");
         var response = await _client.SendAsync(request);

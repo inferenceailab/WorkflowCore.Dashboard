@@ -13,6 +13,9 @@ public sealed record DashboardConfig(
     DashboardUser? User,
     string? SignOutPath);
 
+/// <summary>The signed-in user, as shown in the UI's account menu.</summary>
+/// <param name="Name">Display name.</param>
+/// <param name="Email">Email address, when the identity provider sends one.</param>
 /// <param name="Role"><c>admin</c>, <c>viewer</c>, or <c>null</c> when the app does not assign dashboard roles.</param>
 public sealed record DashboardUser(string Name, string? Email, string? Role);
 

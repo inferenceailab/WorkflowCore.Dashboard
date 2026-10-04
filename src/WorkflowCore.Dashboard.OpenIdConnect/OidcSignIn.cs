@@ -142,16 +142,17 @@ internal static class OidcSignIn
 
         o.Events.OnRedirectToIdentityProviderForSignOut = context =>
         {
-            var returnUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}{prefix}/signed-out";
             if (oidc.SignOutUrl is { } signOutUrl)
             {
+                // The provider checks this address against the sign-out URLs registered for the app.
+                var returnUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}{prefix}/signed-out";
                 context.Response.Redirect(signOutUrl(returnUrl));
                 context.HandleResponse();
             }
             else if (string.IsNullOrEmpty(context.ProtocolMessage.IssuerAddress))
             {
                 // The provider has no logout endpoint (Google): the dashboard session is closed, that is all we can do.
-                context.Response.Redirect(returnUrl);
+                context.Response.Redirect(context.Properties.RedirectUri ?? o.SignedOutRedirectUri);
                 context.HandleResponse();
             }
             return Task.CompletedTask;
@@ -178,12 +179,11 @@ internal static class OidcSignIn
     /// </summary>
     private static ClaimsPrincipal DashboardPrincipal(ClaimsPrincipal source, DashboardRole role, IReadOnlyList<string> groups)
     {
-        var claims = new List<Claim>();
-        foreach (var type in new[] { "sub", "email", "preferred_username" })
-        {
-            if (source.FindFirst(type) is { } claim)
-                claims.Add(new Claim(type, claim.Value));
-        }
+        var claims = new[] { "sub", "email", "preferred_username" }
+            .Select(source.FindFirst)
+            .OfType<Claim>()
+            .Select(claim => new Claim(claim.Type, claim.Value))
+            .ToList();
 
         var name = source.FindFirst("name")?.Value ?? source.FindFirst("preferred_username")?.Value
             ?? source.FindFirst("email")?.Value ?? source.FindFirst("sub")?.Value ?? "unknown";
