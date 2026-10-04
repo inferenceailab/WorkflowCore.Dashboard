@@ -14,32 +14,83 @@ Treat dashboard access like production admin access.
 
 ## Exposing the dashboard
 
-Use your app's authentication and an authorization policy:
+The dashboard uses your app's own sign-in. Its UI calls the API on the same origin, so any **cookie-based** scheme works: cookie authentication, OpenID Connect (Microsoft Entra ID, Auth0, Keycloak…) or Windows authentication. A bearer-token-only setup does not work for the UI, because the UI does not attach tokens to its requests.
+
+One rule on the mapped route group protects everything: the UI (including deep links), the API and the live-updates hub.
+
+### Admins only
 
 ```csharp
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie()
+    .AddOpenIdConnect(options => { /* your identity provider */ });
+
 builder.Services.AddAuthorization(o =>
     o.AddPolicy("WorkflowAdmins", p => p.RequireRole("workflow-admin")));
 
 builder.Services.AddWorkflowCoreDashboard(options =>
 {
-    options.Authorization = _ => true;   // the policy below decides
+    options.Authorization = _ => true;   // replaces the local-only default; the policy decides
 });
 
+var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapWorkflowCoreDashboard("/workflows").RequireAuthorization("WorkflowAdmins");
 ```
 
-`RequireAuthorization` also covers the live-updates hub, because it is mapped in the same route group. Alternatively, decide in code:
+Signed-out users are sent to the login page; signed-in users without the role get 403.
+
+### Viewers and admins
+
+`AllowActions = false` makes the dashboard read-only for everyone. To let some people watch and others act, decide per request instead: reads are GET, changes are POST, PUT or DELETE.
 
 ```csharp
-options.Authorization = http => http.User.IsInRole("workflow-admin");
+builder.Services.AddWorkflowCoreDashboard(options =>
+{
+    options.Authorization = http =>
+        http.User.IsInRole("workflow-admin")
+        || (http.User.IsInRole("workflow-viewer")
+            && (HttpMethods.IsGet(http.Request.Method) || HttpMethods.IsHead(http.Request.Method)));
+});
+
+app.MapWorkflowCoreDashboard("/workflows").RequireAuthorization();   // sign-in required
 ```
 
-Also:
+Viewers see the action buttons, but using them returns "access denied".
 
-- **Use HTTPS.** Workflow data and cookies travel over this connection.
-- **Behind a reverse proxy, do not rely on the local-only default.** A proxy on the same machine makes every request look local. Configure real authorization, or `ForwardedHeaders` so the client address is known.
+### Windows authentication (intranet)
+
+```csharp
+builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme).AddNegotiate();
+builder.Services.AddAuthorization(o =>
+    o.AddPolicy("WorkflowAdmins", p => p.RequireRole(@"CONTOSO\Workflow Admins")));
+```
+
+Map the dashboard with `RequireAuthorization("WorkflowAdmins")` and `Authorization = _ => true`, as above.
+
+### Scripts and other services
+
+Add a bearer-token scheme next to the cookie one and allow it in the policy:
+
+```csharp
+builder.Services.AddAuthentication().AddJwtBearer(/* ... */);
+builder.Services.AddAuthorization(o => o.AddPolicy("WorkflowAdmins", p => p
+    .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme)
+    .RequireRole("workflow-admin")));
+```
+
+Scripts then send `Authorization: Bearer …` and, for changes, `X-Wfc-Dashboard: 1`. See [REST API](REST-API.md).
+
+### Also
+
+- **Use HTTPS.** Workflow data and sign-in cookies travel over this connection.
+- **Behind a reverse proxy, do not rely on the local-only default.** A proxy on the same machine makes every request look local. Configure sign-in as above, or `ForwardedHeaders` so the client address is known.
 - **Do not enable a permissive CORS policy** (`AllowAnyOrigin` with credentials) for the dashboard path.
-- **Consider read-only.** Teams that only monitor can use `AllowActions = false` on a separate, wider-access mapping.
+- **Keep `Authorization` in mind when adding `RequireAuthorization`.** Both apply. Leaving the local-only default in place keeps everyone else out even after they sign in.
+
+These setups are covered by `AuthorizationTests`.
 
 ## Built-in protections
 
