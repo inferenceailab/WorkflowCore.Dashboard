@@ -16,6 +16,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- `POST /instances/{id}/suspend`, `/resume` and `/terminate` return 404 `instance-not-found` for an unknown instance instead of a 500.
 - `GET /config` reports `allowActions` for the current user, and the signed-in `user` and `signOutPath`.
 
 ## [0.1.0] - 2026-10-04

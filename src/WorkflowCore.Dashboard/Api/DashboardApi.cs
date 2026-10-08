@@ -32,9 +32,9 @@ internal static class DashboardApi
         api.MapGet("/activity/totals", GetActivityTotals);
 
         api.MapPost("/instances", StartWorkflow);
-        api.MapPost("/instances/{id}/suspend", (string id, IWorkflowController c) => Act(() => c.SuspendWorkflow(id)));
-        api.MapPost("/instances/{id}/resume", (string id, IWorkflowController c) => Act(() => c.ResumeWorkflow(id)));
-        api.MapPost("/instances/{id}/terminate", (string id, IWorkflowController c) => Act(() => c.TerminateWorkflow(id)));
+        api.MapPost("/instances/{id}/suspend", (string id, IWorkflowController c, IPersistenceProvider store) => Act(id, store, () => c.SuspendWorkflow(id)));
+        api.MapPost("/instances/{id}/resume", (string id, IWorkflowController c, IPersistenceProvider store) => Act(id, store, () => c.ResumeWorkflow(id)));
+        api.MapPost("/instances/{id}/terminate", (string id, IWorkflowController c, IPersistenceProvider store) => Act(id, store, () => c.TerminateWorkflow(id)));
         api.MapPost("/events", PublishEvent);
     }
 
@@ -111,21 +111,27 @@ internal static class DashboardApi
 
     private static async Task<IResult> GetInstance(string id, IPersistenceProvider store, IWorkflowRegistry registry)
     {
-        WorkflowInstance? wf;
+        var wf = await FindInstance(id, store);
+        return wf is null
+            ? InstanceNotFound(id)
+            : Ok(DtoMapper.ToDetail(wf, registry.GetDefinition(wf.WorkflowDefinitionId, wf.Version)));
+    }
+
+    private static async Task<WorkflowInstance?> FindInstance(string id, IPersistenceProvider store)
+    {
         try
         {
-            wf = await store.GetWorkflowInstance(id);
+            return await store.GetWorkflowInstance(id);
         }
         catch (InvalidOperationException)
         {
             // Some providers (e.g. the in-memory one) throw instead of returning null.
-            wf = null;
+            return null;
         }
-
-        return wf is null
-            ? Error(StatusCodes.Status404NotFound, "instance-not-found", $"Workflow instance '{id}' was not found.")
-            : Ok(DtoMapper.ToDetail(wf, registry.GetDefinition(wf.WorkflowDefinitionId, wf.Version)));
     }
+
+    private static IResult InstanceNotFound(string id) =>
+        Error(StatusCodes.Status404NotFound, "instance-not-found", $"Workflow instance '{id}' was not found.");
 
     private static async Task<IResult> GetActivity(HttpRequest request, IDashboardJournal journal)
     {
@@ -187,7 +193,8 @@ internal static class DashboardApi
         return Ok(new ActionResponse(true));
     }
 
-    private static async Task<IResult> Act(Func<Task<bool>> action) => Ok(new ActionResponse(await action()));
+    private static async Task<IResult> Act(string id, IPersistenceProvider store, Func<Task<bool>> action) =>
+        await FindInstance(id, store) is null ? InstanceNotFound(id) : Ok(new ActionResponse(await action()));
 
     /// <summary>Sent by the dashboard UI with every change it requests.</summary>
     internal const string RequestHeader = "X-Wfc-Dashboard";
