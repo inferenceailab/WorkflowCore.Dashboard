@@ -22,14 +22,14 @@ curl -X POST https://host/workflows/api/events \
 | `GET /config` | Title, whether this user may change things (`allowActions`), persistence provider, journal info, installed features, the signed-in `user` (`name`, `email`, `role`) and `signOutPath` |
 | `GET /definitions` | Registered definitions (every version) |
 | `GET /definitions/{id}/{version}` | One definition with its steps and default data |
-| `GET /instances` | Instances. Query: `status`, `definitionId`, `createdFrom`, `createdTo`, `skip`, `take` |
+| `GET /instances` | Instances. Query: `status`, `definitionId`, `createdFrom`, `createdTo`, `skip`, `take`. A `createdFrom` or `createdTo` that is not a date answers 400 `invalid-date` |
 | `GET /instances/{id}` | One instance with execution pointers and data |
 | `POST /instances` | Start a workflow: `{ definitionId, version?, data?, reference? }` → `{ id }` |
 | `POST /instances/{id}/suspend` | → `{ success }` |
 | `POST /instances/{id}/resume` | → `{ success }` |
 | `POST /instances/{id}/terminate` | → `{ success }` |
 | `POST /events` | Publish an event: `{ eventName, eventKey, eventData?, effectiveDate? }` |
-| `GET /activity` | Activity, newest first. Query: `instanceId`, `before`, `take` (max 1000), `steps=false` |
+| `GET /activity` | Activity, newest first. Query: `instanceId`, `before` (a date; 400 `invalid-date` otherwise), `take` (max 1000), `steps=false` |
 | `GET /activity/totals` | Event counts by type. Query: `hours` (default 24) → `{ since, counts }` |
 
 `GET /instances` returns `{ items, skip, take, hasMore, total, source }`. `total` is `null` and `source` is `"provider"` when the list comes from Workflow Core's own listing; see [Activity journal](Activity-Journal.md#instance-listing). Providers that cannot list return `501` with code `listing-not-supported` when no journal index is available.

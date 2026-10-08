@@ -94,11 +94,15 @@ internal static class DashboardApi
         if (!TryParseStatus(q["status"], out var status))
             return Error(StatusCodes.Status400BadRequest, "invalid-status", $"Unknown status '{q["status"]}'.");
 
+        if (!TryParseDate(q, "createdFrom", out var createdFrom, out var error)
+            || !TryParseDate(q, "createdTo", out var createdTo, out error))
+            return error;
+
         var query = new InstanceListQuery(
             status,
             NullIfEmpty(q["definitionId"]),
-            ParseDate(q["createdFrom"]),
-            ParseDate(q["createdTo"]),
+            createdFrom,
+            createdTo,
             Math.Max(0, ParseInt(q["skip"]) ?? 0),
             Math.Clamp(ParseInt(q["take"]) ?? 25, 1, options.Value.MaxPageSize));
 
@@ -130,9 +134,12 @@ internal static class DashboardApi
     private static async Task<IResult> GetActivity(HttpRequest request, IDashboardJournal journal)
     {
         var q = request.Query;
+        if (!TryParseDate(q, "before", out var before, out var error))
+            return error;
+
         var query = new ActivityQuery(
             NullIfEmpty(q["instanceId"]),
-            ParseDate(q["before"]),
+            before,
             Math.Clamp(ParseInt(q["take"]) ?? 100, 1, 1000),
             !string.Equals(q["steps"], "false", StringComparison.OrdinalIgnoreCase));
         return Ok(await journal.GetActivityAsync(query, request.HttpContext.RequestAborted));
@@ -243,10 +250,24 @@ internal static class DashboardApi
 
     private static int? ParseInt(string? value) => int.TryParse(value, out var n) ? n : null;
 
-    private static DateTime? ParseDate(string? value) =>
-        DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var d)
-            ? d
-            : null;
+    /// <summary>Parses an optional date parameter; an absent or empty one is null, a malformed one is a 400.</summary>
+    private static bool TryParseDate(IQueryCollection q, string name, out DateTime? date, out IResult error)
+    {
+        date = null;
+        error = Results.Empty;
+        string? value = q[name];
+        if (string.IsNullOrEmpty(value))
+            return true;
+
+        if (DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var d))
+        {
+            date = d;
+            return true;
+        }
+
+        error = Error(StatusCodes.Status400BadRequest, "invalid-date", $"{name} '{value}' is not a date.");
+        return false;
+    }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 

@@ -16,6 +16,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- `GET /instances` and `GET /activity` answer 400 `invalid-date` for a `createdFrom`, `createdTo` or `before` that is not a date, instead of ignoring it.
 - `GET /config` reports `allowActions` for the current user, and the signed-in `user` and `signOutPath`.
 
 ## [0.1.0] - 2026-10-04
