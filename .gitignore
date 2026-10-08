@@ -11,3 +11,6 @@ samples/**/*.db-wal
 
 # Browser test output
 .playwright-mcp/
+
+# Test results (FoundryLine and local runs)
+/TestResults/

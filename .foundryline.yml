@@ -1,0 +1,12 @@
+# FoundryLine Repo Contract: how FoundryLine builds and tests this repository for a Ticket.
+# The Angular UI is not built (SkipDashboardUi): FoundryLine takes backend and API Tickets only.
+version: 1
+image: mcr.microsoft.com/dotnet/sdk:10.0
+commands:
+  setup: dotnet restore -p:SkipDashboardUi=true
+  build: dotnet build -c Release --no-restore -p:SkipDashboardUi=true
+  test: dotnet test -c Release --no-build -p:SkipDashboardUi=true --logger "trx;LogFileName=results.trx" --results-directory TestResults
+test_report: TestResults/*.trx
+network:
+  allow: [api.nuget.org]
+protected_paths: ["src/WorkflowCore.Dashboard.UI/**", ".github/**"]
