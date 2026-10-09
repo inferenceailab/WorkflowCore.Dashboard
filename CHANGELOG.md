@@ -16,6 +16,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- `POST /instances` and `POST /events` return `400` with `invalid-json` and the parse error (including the JSON path, such as `$.version`) when the body is not valid JSON, instead of reporting `definitionId is required.` or `eventName is required.`.
 - `GET /instances` and `GET /activity` return `400` with `invalid-date` for unparsable date parameters, and `GET /instances` returns `invalid-date-range` when `createdFrom` is after `createdTo`, instead of ignoring the filter.
 - `POST /instances/{id}/suspend`, `/resume` and `/terminate` return 404 `instance-not-found` for an unknown instance instead of a 500.
 - `GET /config` reports `allowActions` for the current user, and the signed-in `user` and `signOutPath`.
