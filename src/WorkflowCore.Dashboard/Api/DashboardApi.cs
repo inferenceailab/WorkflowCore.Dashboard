@@ -94,11 +94,17 @@ internal static class DashboardApi
         if (!TryParseStatus(q["status"], out var status))
             return Error(StatusCodes.Status400BadRequest, "invalid-status", $"Unknown status '{q["status"]}'.");
 
+        if (!TryParseDate(q["createdFrom"], "createdFrom", out var createdFrom, out var dateError)
+            || !TryParseDate(q["createdTo"], "createdTo", out var createdTo, out dateError))
+            return dateError!;
+        if (createdFrom is not null && createdTo is not null && createdFrom > createdTo)
+            return Error(StatusCodes.Status400BadRequest, "invalid-date-range", "createdFrom must not be after createdTo.");
+
         var query = new InstanceListQuery(
             status,
             NullIfEmpty(q["definitionId"]),
-            ParseDate(q["createdFrom"]),
-            ParseDate(q["createdTo"]),
+            createdFrom,
+            createdTo,
             Math.Max(0, ParseInt(q["skip"]) ?? 0),
             Math.Clamp(ParseInt(q["take"]) ?? 25, 1, options.Value.MaxPageSize));
 
@@ -130,9 +136,11 @@ internal static class DashboardApi
     private static async Task<IResult> GetActivity(HttpRequest request, IDashboardJournal journal)
     {
         var q = request.Query;
+        if (!TryParseDate(q["before"], "before", out var before, out var dateError))
+            return dateError!;
         var query = new ActivityQuery(
             NullIfEmpty(q["instanceId"]),
-            ParseDate(q["before"]),
+            before,
             Math.Clamp(ParseInt(q["take"]) ?? 100, 1, 1000),
             !string.Equals(q["steps"], "false", StringComparison.OrdinalIgnoreCase));
         return Ok(await journal.GetActivityAsync(query, request.HttpContext.RequestAborted));
@@ -247,6 +255,19 @@ internal static class DashboardApi
         DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var d)
             ? d
             : null;
+
+    private static bool TryParseDate(string? value, string name, out DateTime? date, out IResult? error)
+    {
+        date = null;
+        error = null;
+        if (string.IsNullOrWhiteSpace(value))
+            return true;
+        date = ParseDate(value);
+        if (date is not null)
+            return true;
+        error = Error(StatusCodes.Status400BadRequest, "invalid-date", $"{name} must be an ISO 8601 date, got '{value}'.");
+        return false;
+    }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
