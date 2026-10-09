@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- `POST /instances` with an unregistered version now answers 404 `definition-not-found` naming the version and listing the registered versions.
+
 ### Added
 
 - `WorkflowCore.Dashboard.OpenIdConnect` package: sign-in with Okta, Microsoft Entra ID, Auth0, Keycloak, Google, Amazon Cognito or any OpenID Connect provider, configured in code or settings (`UseSignIn`), with admin and viewer roles from groups, roles or email addresses.

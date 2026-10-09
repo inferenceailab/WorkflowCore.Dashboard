@@ -169,7 +169,17 @@ internal static class DashboardApi
 
         var def = registry.GetDefinition(body.DefinitionId, body.Version);
         if (def is null)
-            return Error(StatusCodes.Status404NotFound, "definition-not-found", $"Workflow '{body.DefinitionId}' is not registered.");
+        {
+            var versions = registry.GetAllDefinitions()
+                .Where(d => string.Equals(d.Id, body.DefinitionId, StringComparison.OrdinalIgnoreCase))
+                .Select(d => d.Version)
+                .OrderBy(v => v)
+                .ToList();
+            var message = body.Version is { } requested && versions.Count > 0
+                ? $"Workflow '{body.DefinitionId}' version {requested} is not registered. Registered versions: {string.Join(", ", versions)}."
+                : $"Workflow '{body.DefinitionId}' is not registered.";
+            return Error(StatusCodes.Status404NotFound, "definition-not-found", message);
+        }
 
         object? data;
         try
