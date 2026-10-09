@@ -49,7 +49,7 @@ public sealed class InstanceActionTests
                                 ? (IPersistenceProvider)f(sp)
                                 : (IPersistenceProvider)ActivatorUtilities.CreateInstance(sp, real.ImplementationType ?? real.ImplementationInstance!.GetType());
                             var proxy = DispatchProxy.Create<IPersistenceProvider, NullLookupProxy>();
-                            ((NullLookupProxy)(object)proxy).Inner = inner;
+                            ((NullLookupProxy)proxy).Inner = inner;
                             return proxy;
                         });
                     }
@@ -63,11 +63,11 @@ public sealed class InstanceActionTests
         return (host, host.GetTestClient());
     }
 
-    private static Task<HttpResponseMessage> Post(HttpClient client, string id, string action)
+    private static async Task<HttpResponseMessage> Post(HttpClient client, string id, string action)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/workflows/api/instances/{id}/{action}");
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/workflows/api/instances/{id}/{action}");
         request.Headers.Add("X-Wfc-Dashboard", "1");
-        return client.SendAsync(request);
+        return await client.SendAsync(request);
     }
 
     private static async Task AssertNotFound(HttpResponseMessage response, string id)
