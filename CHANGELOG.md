@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- `GET /instances` and `GET /activity` return `400` with `invalid-date` for unparsable date parameters, and `GET /instances` returns `invalid-date-range` when `createdFrom` is after `createdTo`, instead of ignoring the filter.
+
 ### Added
 
 - `WorkflowCore.Dashboard.OpenIdConnect` package: sign-in with Okta, Microsoft Entra ID, Auth0, Keycloak, Google, Amazon Cognito or any OpenID Connect provider, configured in code or settings (`UseSignIn`), with admin and viewer roles from groups, roles or email addresses.

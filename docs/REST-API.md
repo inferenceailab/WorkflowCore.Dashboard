@@ -82,5 +82,5 @@ An entry can be sent twice with the same `id`: the second time with `details` (t
 | `read-only` | 403 | `AllowActions` is `false` |
 | `not-allowed` | 403 | `ActionAuthorization` refused this user a change (a viewer) |
 | `not-found`, `definition-not-found`, `instance-not-found` | 404 | Unknown route, definition or instance |
-| `invalid-request`, `invalid-status`, `invalid-data`, `invalid-id`, `invalid-definition`, `too-large` | 400 | The request could not be used |
+| `invalid-request`, `invalid-status`, `invalid-date`, `invalid-date-range`, `invalid-data`, `invalid-id`, `invalid-definition`, `too-large` | 400 | The request could not be used |
 | `listing-not-supported` | 501 | The provider cannot list instances and there is no index |
