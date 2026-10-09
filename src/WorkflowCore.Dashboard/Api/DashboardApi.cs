@@ -161,7 +161,9 @@ internal static class DashboardApi
 
     private static async Task<IResult> StartWorkflow(HttpRequest request, IWorkflowController controller, IWorkflowRegistry registry)
     {
-        var body = await ReadBody<StartWorkflowRequest>(request);
+        var (body, jsonError) = await ReadBody<StartWorkflowRequest>(request);
+        if (jsonError is not null)
+            return jsonError;
         if (body is null || string.IsNullOrWhiteSpace(body.DefinitionId))
             return Error(StatusCodes.Status400BadRequest, "invalid-request", "definitionId is required.");
 
@@ -202,7 +204,9 @@ internal static class DashboardApi
 
     private static async Task<IResult> PublishEvent(HttpRequest request, IWorkflowController controller)
     {
-        var body = await ReadBody<PublishEventRequest>(request);
+        var (body, jsonError) = await ReadBody<PublishEventRequest>(request);
+        if (jsonError is not null)
+            return jsonError;
         if (body is null || string.IsNullOrWhiteSpace(body.EventName))
             return Error(StatusCodes.Status400BadRequest, "invalid-request", "eventName is required.");
 
@@ -243,15 +247,22 @@ internal static class DashboardApi
         return next(context);
     }
 
-    private static async Task<T?> ReadBody<T>(HttpRequest request)
+    /// <summary>Reads a JSON body. An empty body gives a null body; unparsable JSON gives an <c>invalid-json</c> error.</summary>
+    private static async Task<(T? Body, IResult? Error)> ReadBody<T>(HttpRequest request)
     {
+        using var buffer = new MemoryStream();
+        await request.Body.CopyToAsync(buffer, request.HttpContext.RequestAborted);
+        var bytes = buffer.ToArray();
+        if (System.Text.Encoding.UTF8.GetString(bytes).Trim().Length == 0)
+            return (default, null);
+
         try
         {
-            return await JsonSerializer.DeserializeAsync<T>(request.Body, Json, request.HttpContext.RequestAborted);
+            return (JsonSerializer.Deserialize<T>(bytes, Json), null);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            return default;
+            return (default, Error(StatusCodes.Status400BadRequest, "invalid-json", $"The request body is not valid JSON: {ex.Message}"));
         }
     }
 
